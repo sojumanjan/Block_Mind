@@ -34,7 +34,7 @@ public class RoomCameraTrigger : MonoBehaviour
         BoxCollider2D col = box != null ? box : GetComponent<BoxCollider2D>();
         if (col == null) return;
 
-        Gizmos.color = new Color(0f, 1f, 0f, 0.1f); // 반투명 초록
+        Gizmos.color = new Color(0f, 1f, 0f, 0f); // 반투명 초록
         Gizmos.matrix = transform.localToWorldMatrix;
         Gizmos.DrawCube(col.offset, col.size);
 
