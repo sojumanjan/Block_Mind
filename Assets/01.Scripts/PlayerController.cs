@@ -43,6 +43,11 @@ public class PlayerController : MonoBehaviour
         {
             elaspedTime = jumpRecogTime;
         }
+        // 플레이어 좌우 방향 바라보도록
+        if (moveDir.x > 0)
+            transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+        else if (moveDir.x < 0)
+            transform.rotation = Quaternion.Euler(0f, 180f, 0f);
     }
 
     private void FixedUpdate()
@@ -51,21 +56,21 @@ public class PlayerController : MonoBehaviour
 
         if (elaspedTime >= 0 && IsGrounded())
         {
+            rigid.linearVelocity = new Vector2(rigid.linearVelocity.x, 0f);
             rigid.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
+            elaspedTime = -1f;
         }
 
-        if (rigid.linearVelocityY >= maxYVelocity) rigid.linearVelocityY = maxYVelocity;
-        if (rigid.linearVelocityY <= -maxYVelocity) rigid.linearVelocityY = -maxYVelocity;
     }
     bool IsGrounded()
     {
-        return Physics2D.OverlapBox(transform.position + Vector3.down * 0.5f, new Vector2(1.2f, 0.3f),0f, LayerMask.GetMask("Ground"))
-            || Physics2D.OverlapBox(transform.position + Vector3.down * 0.5f, new Vector2(1.2f, 0.3f), 0f, LayerMask.GetMask("FollowingBlock"));
+        return Physics2D.OverlapBox(transform.position + Vector3.down, new Vector2(1.8f, 0.3f),0f, LayerMask.GetMask("Ground"))
+            || Physics2D.OverlapBox(transform.position + Vector3.down, new Vector2(1.8f, 0.3f), 0f, LayerMask.GetMask("FollowingBlock"));
     }
 
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.green;
-        Gizmos.DrawCube(transform.position + Vector3.down * 0.5f, new Vector2(1.2f, 0.2f));
+        Gizmos.DrawCube(transform.position + Vector3.down, new Vector2(1.8f, 0.3f));
     }
 }

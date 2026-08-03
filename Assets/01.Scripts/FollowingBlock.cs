@@ -15,7 +15,7 @@ public class FollowingBlock : MonoBehaviour
         Vector3 pos = Mouse.current.position.ReadValue();
         Vector3 mousePos = Camera.main.ScreenToWorldPoint(pos);
         mousePos.z = 0f;
-        transform.position = mousePos;
+        transform.position = new Vector2(8, 0);
     }
 
     private void FixedUpdate()
