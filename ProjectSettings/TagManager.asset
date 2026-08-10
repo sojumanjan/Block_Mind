@@ -6,15 +6,17 @@ TagManager:
   tags:
   - Ground
   - PassableGround
+  - FollowingShadow
+  - Obstacle
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Player
   - Water
   - UI
   - Ground
-  - FollowingBlock
+  - FollowingShadow
   - PassableGround
   - 
   - 

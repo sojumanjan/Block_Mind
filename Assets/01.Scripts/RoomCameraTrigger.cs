@@ -1,3 +1,4 @@
+using System.Collections;
 using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -7,6 +8,7 @@ public class RoomCameraTrigger : MonoBehaviour
     [SerializeField] private CinemachineCamera roomCamera;
     [SerializeField] private int activePriority = 20;
     [SerializeField] private int inactivePriority = 10;
+    [SerializeField] private Transform shadowSpawnPoint;
 
     private BoxCollider2D box;
     private void Awake()
@@ -19,6 +21,7 @@ public class RoomCameraTrigger : MonoBehaviour
         if (collision.CompareTag("Player"))
         {
             roomCamera.Priority = activePriority; // 이 방 카메라를 최우선으로
+            StartCoroutine(MoveShadow());
         }
     }
 
@@ -29,6 +32,13 @@ public class RoomCameraTrigger : MonoBehaviour
             roomCamera.Priority = inactivePriority; // 나가면 우선순위 원위치
         }
     }
+
+    IEnumerator MoveShadow()
+    {
+        yield return new WaitForSeconds(0.5f);
+        FollowingShadow.Instance.GetComponent<Transform>().position = shadowSpawnPoint.position;
+    }
+
     private void OnDrawGizmos() // ✅ 선택 안 해도 항상 보임
     {
         BoxCollider2D col = box != null ? box : GetComponent<BoxCollider2D>();
