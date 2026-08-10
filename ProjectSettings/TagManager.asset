@@ -8,6 +8,8 @@ TagManager:
   - PassableGround
   - FollowingShadow
   - Obstacle
+  - Block
+  - Marker
   layers:
   - Default
   - TransparentFX
@@ -18,9 +20,9 @@ TagManager:
   - Ground
   - FollowingShadow
   - PassableGround
-  - 
-  - 
-  - 
+  - Block
+  - Marking
+  - Marker
   - 
   - 
   - 
