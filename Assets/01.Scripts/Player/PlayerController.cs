@@ -11,7 +11,8 @@ public class PlayerController : MonoBehaviour
     private Vector2 moveDir;
     private float jumpRecogTime = 0.2f;
     private float elaspedTime = 0f;
-    public float maxYVelocity = 5f;
+    [SerializeField] private Vector2 jumpBoxSize = new Vector2(1.5f, 0.2f);
+    [SerializeField] private float jumpBoxYOffset = 0.9f;
 
     private void Awake()
     {
@@ -64,13 +65,13 @@ public class PlayerController : MonoBehaviour
     }
     bool IsGrounded()
     {
-        return Physics2D.OverlapBox(transform.position + Vector3.down, new Vector2(1.8f, 0.3f),0f, LayerMask.GetMask("Ground"))
-            || Physics2D.OverlapBox(transform.position + Vector3.down, new Vector2(1.8f, 0.3f), 0f, LayerMask.GetMask("FollowingBlock"));
+        return Physics2D.OverlapBox(transform.position + Vector3.down * jumpBoxYOffset, jumpBoxSize, 0f, LayerMask.GetMask("Ground"))
+            || Physics2D.OverlapBox(transform.position + Vector3.down * jumpBoxYOffset, jumpBoxSize, 0f, LayerMask.GetMask("Block"));
     }
 
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.green;
-        Gizmos.DrawCube(transform.position + Vector3.down, new Vector2(1.8f, 0.3f));
+        Gizmos.DrawCube(transform.position + Vector3.down * jumpBoxYOffset, jumpBoxSize);
     }
 }

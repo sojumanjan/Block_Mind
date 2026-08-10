@@ -39,7 +39,7 @@ public class RoomCameraTrigger : MonoBehaviour
         FollowingShadow.Instance.GetComponent<Transform>().position = shadowSpawnPoint.position;
     }
 
-    private void OnDrawGizmos() // ✅ 선택 안 해도 항상 보임
+    private void OnDrawGizmos() // 선택 안 해도 항상 보임
     {
         BoxCollider2D col = box != null ? box : GetComponent<BoxCollider2D>();
         if (col == null) return;
