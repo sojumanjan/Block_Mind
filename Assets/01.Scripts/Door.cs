@@ -9,11 +9,11 @@ public class Door : MonoBehaviour
 
     [Header("플레이어 동반 이동")]
     [SerializeField] private LayerMask playerLayer;
-    [SerializeField] private Vector2 topCheckSize = new Vector2(0.1f, 1f); // 세로로 긴 형태 (x, y)
-    [SerializeField] private float topCheckOffset = 0.5f;
+    [SerializeField] private Vector2 topCheckSize = new Vector2(1f, 0.1f);
+    [SerializeField] private Vector2 topCheckOffset = new Vector2(0f, 0.5f);
 
-    [Header("참조 크기 (스프라이트 원본 높이, 유니티 단위)")]
-    [SerializeField] private float baseHeight = 1f;
+    [Header("참조 크기 (스프라이트 원본 세로 길이, 유니티 단위)")]
+    [SerializeField] private float baseHeight = 1f; // 스케일 1일 때의 실제 월드 세로 길이
 
     [Header("기즈모 미리보기")]
     [SerializeField] private bool previewTopCheck = true;
@@ -58,7 +58,7 @@ public class Door : MonoBehaviour
         Collider2D hit = Physics2D.OverlapBox(boxCenter, topCheckSize, transform.eulerAngles.z, playerLayer);
         if (hit == null) return;
 
-        Vector2 deltaY = (Vector2)transform.up * deltaHeight; // 로컬 up 방향 기준으로 이동량 적용
+        Vector2 deltaY = (Vector2)transform.up * -deltaHeight; // 문의 로컬 up 방향 기준
 
         Rigidbody2D playerRb = hit.attachedRigidbody;
         if (playerRb != null)
@@ -67,10 +67,12 @@ public class Door : MonoBehaviour
             hit.transform.position += (Vector3)deltaY;
     }
 
-    // 문의 로컬 왼쪽(-right) 방향으로 오프셋된 감지 박스 중심 위치
     private Vector2 GetCheckBoxCenter()
     {
-        return (Vector2)transform.position + (Vector2)(-transform.right) * topCheckOffset;
+        Vector2 localOffset = (Vector2)transform.right * topCheckOffset.x
+                             + (Vector2)transform.up * topCheckOffset.y;
+
+        return (Vector2)transform.position + localOffset;
     }
 
     private void OnDrawGizmos()
@@ -89,6 +91,6 @@ public class Door : MonoBehaviour
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireCube(Vector3.zero, topCheckSize);
 
-        Gizmos.matrix = Matrix4x4.identity; // 다른 기즈모에 영향 안 주도록 리셋
+        Gizmos.matrix = Matrix4x4.identity;
     }
 }
