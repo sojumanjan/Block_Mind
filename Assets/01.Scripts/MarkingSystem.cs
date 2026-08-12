@@ -19,11 +19,6 @@ public class MarkingSystem : MonoBehaviour
     [SerializeField] private LayerMask playerLayer;         // 플레이어 레이어
     [SerializeField] private Vector2 blockTopSize = new Vector2(1f, 0.1f); // 블럭 윗면 감지 박스 크기
     [SerializeField] private float topCheckOffset = 0.5f;   // 블럭 중심에서 윗면까지 거리
-    [SerializeField] private float topCheckDistance = 0.15f; // 윗면 위로 감지할 여유 높이
-    [SerializeField] private LayerMask wallLayer;          // 벽 레이어
-    [SerializeField] private float ejectSpeed = 10f;       // 옆으로 밀어내는 속도
-    [SerializeField] private float crushCheckDist = 0.1f;  // 벽 감지 거리
-
 
     private readonly List<Vector3> markPositions = new List<Vector3>();
     private readonly List<GameObject> markerObjects = new List<GameObject>();
@@ -131,6 +126,7 @@ public class MarkingSystem : MonoBehaviour
     }
 
     // 블럭 윗면에 올라탄 플레이어를 delta의 X축 성분만큼만 함께 이동
+    // 끼임(충돌) 판정은 여기서 하지 않음 - 플레이어 쪽 CrushDetector(트리거)가 별도로 처리
     private void CarryPlayerOnTop(Vector3 blockPos, Vector3 delta)
     {
         Vector2 boxCenter = new Vector2(blockPos.x, blockPos.y + topCheckOffset);
@@ -142,12 +138,6 @@ public class MarkingSystem : MonoBehaviour
             playerLayer);
 
         if (hit == null) return;
-
-        if (IsPlayerCrushed(hit, delta))
-        {
-            ResetPlayer(hit);
-            return;
-        }
 
         // X축 이동량만 사용 (Y축은 블럭 위에 서 있으므로 콜라이더가 알아서 처리)
         Vector2 deltaX = new Vector2(delta.x, 0f);
@@ -183,25 +173,4 @@ public class MarkingSystem : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawWireCube(boxCenter, blockTopSize);
     }
-
-    // 블럭이 미는 방향 앞에 벽이 있으면 끼임 판정 후 사망처리
-    private bool IsPlayerCrushed(Collider2D player, Vector3 delta)
-    {
-        Vector2 pushDir = ((Vector2)delta).normalized;
-        if (pushDir.sqrMagnitude < 0.0001f) return false;
-
-        Vector2 pos = player.attachedRigidbody != null
-            ? player.attachedRigidbody.position
-            : (Vector2)player.transform.position;
-        Vector2 size = player.bounds.size;
-
-        RaycastHit2D wallAhead = Physics2D.BoxCast(pos, size, 0f, pushDir, crushCheckDist, wallLayer);
-        return wallAhead.collider != null;
-    }
-    // 플레이어 리셋 처리 (리스폰/씬 리로드/사망 등) 나중에 구현
-    private void ResetPlayer(Collider2D player)
-    {
-        Debug.Log("플레이어 사망");
-    }
-
 }

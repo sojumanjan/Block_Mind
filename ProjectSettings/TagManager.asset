@@ -10,6 +10,7 @@ TagManager:
   - Obstacle
   - Block
   - Marker
+  - CheckPoint
   layers:
   - Default
   - TransparentFX
@@ -23,8 +24,8 @@ TagManager:
   - Block
   - Marking
   - Marker
-  - 
-  - 
+  - Obstacle
+  - CheckPoint
   - 
   - 
   - 
