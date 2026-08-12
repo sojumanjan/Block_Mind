@@ -19,6 +19,7 @@ public class PlayerLifeManager : MonoBehaviour
     private void Start()
     {
         CrushDetector.Instance.OnCrushed += Crushed;
+        respawnPoint = new Vector2(-11, -7);
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -30,7 +31,7 @@ public class PlayerLifeManager : MonoBehaviour
         }
     }
 
-    void Die()
+    public void Die()
     {
         Debug.Log("플레이어 장애물 닿아 사망이요");
         transform.position = respawnPoint;

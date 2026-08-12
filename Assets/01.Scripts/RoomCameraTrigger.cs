@@ -21,7 +21,7 @@ public class RoomCameraTrigger : MonoBehaviour
         if (collision.CompareTag("Player"))
         {
             roomCamera.Priority = activePriority; // 이 방 카메라를 최우선으로
-            StartCoroutine(MoveShadow());
+            FollowingShadow.Instance.MoveShadowToNextRoom(shadowSpawnPoint);
         }
     }
 
@@ -31,12 +31,6 @@ public class RoomCameraTrigger : MonoBehaviour
         {
             roomCamera.Priority = inactivePriority; // 나가면 우선순위 원위치
         }
-    }
-
-    IEnumerator MoveShadow()
-    {
-        yield return new WaitForSeconds(0.5f);
-        FollowingShadow.Instance.GetComponent<Transform>().position = shadowSpawnPoint.position;
     }
 
     private void OnDrawGizmos() // 선택 안 해도 항상 보임

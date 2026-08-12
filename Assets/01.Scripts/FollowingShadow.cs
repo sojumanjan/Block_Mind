@@ -41,4 +41,9 @@ public class FollowingShadow : MonoBehaviour
 
         rigid.MovePosition(mousePos);
     }
+
+    public void MoveShadowToNextRoom(Transform target)
+    {
+        transform.position = target.position;
+    }
 }
