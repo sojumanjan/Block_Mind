@@ -9,7 +9,6 @@ public class PlayerLifeManager : MonoBehaviour
     public Vector2 respawnPoint;
 
     public event Action OnDie;
-    public event Action OnCheckPoint;
 
     private void Awake()
     {

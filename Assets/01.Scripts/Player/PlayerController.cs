@@ -8,9 +8,11 @@ public class PlayerController : MonoBehaviour
 
     public float moveSpeed = 5f;
     public float jumpPower = 10f;
+    [SerializeField] private float maxFallSpeed = 15f; // 최대 낙하 속도 (인스펙터에서 조절)
     private Vector2 moveDir;
     private float jumpRecogTime = 0.2f;
     private float elaspedTime = 0f;
+    [Tooltip("블럭 위에 플레이어가 서있다고 판정하는 범위(블럭 위에 서있다면 함께 이동하기 위한 설정)")]
     [SerializeField] private Vector2 jumpBoxSize = new Vector2(1.5f, 0.2f);
     [SerializeField] private float jumpBoxYOffset = 0.9f;
 
@@ -62,7 +64,18 @@ public class PlayerController : MonoBehaviour
             elaspedTime = -1f;
         }
 
+        ClampFallSpeed();
     }
+
+    // 낙하 속도가 maxFallSpeed를 넘지 않도록 제한
+    private void ClampFallSpeed()
+    {
+        if (rigid.linearVelocity.y < -maxFallSpeed)
+        {
+            rigid.linearVelocity = new Vector2(rigid.linearVelocity.x, -maxFallSpeed);
+        }
+    }
+
     bool IsGrounded()
     {
         return Physics2D.OverlapBox(transform.position + Vector3.down * jumpBoxYOffset, jumpBoxSize, 0f, LayerMask.GetMask("Ground"))
