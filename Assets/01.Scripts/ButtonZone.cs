@@ -9,7 +9,7 @@ public class ButtonZone : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (((1 << other.gameObject.layer) & blockLayer) == 0) return;
+        if (!other.CompareTag("Player") && !other.CompareTag("Block")) return;
 
         blockCount++;
         UpdateDoors();
@@ -17,7 +17,7 @@ public class ButtonZone : MonoBehaviour
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        if (((1 << other.gameObject.layer) & blockLayer) == 0) return;
+        if (!other.CompareTag("Player") && !other.CompareTag("Block")) return;
 
         blockCount--;
         UpdateDoors();

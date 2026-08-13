@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 6871359586583987090}
   - component: {fileID: 8603019052190191070}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: DoorPivot
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -45,8 +45,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d228d8ad34e12ad49bff24d0382dbbcd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Door
-  animDuration: 0.3
-  animEase: 4
+  openDuration: 0.3
+  closeDuration: 0.3
+  animEase: 1
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  topCheckSize: {x: 1, y: 0.1}
+  topCheckOffset: {x: 0, y: 0.5}
+  baseHeight: 1
+  previewTopCheck: 1
 --- !u!1 &5270538857525813583
 GameObject:
   m_ObjectHideFlags: 0
@@ -58,7 +66,7 @@ GameObject:
   - component: {fileID: 5659405905577235357}
   - component: {fileID: 6727462386140598232}
   - component: {fileID: 1936107512292996731}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Door
   m_TagString: Untagged
   m_Icon: {fileID: 0}
