@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class Room : MonoBehaviour
 {
+    private const float RoomWidth = 32f;
+    private const float RoomHeight = 18f;
+
     [SerializeField] private Vector2 coordinate;
 
     public Vector2 Coordinate => coordinate;
@@ -27,8 +30,11 @@ public class Room : MonoBehaviour
         IsVisited = true;
     }
 
-    public void MarkCleared()
+    public void MoveToCoordinatePosition()
     {
-        IsCleared = true;
+        Vector3 pos = transform.position;
+        pos.x = (coordinate.x - 1f) * RoomWidth;
+        pos.y = coordinate.y * RoomHeight;
+        transform.position = pos;
     }
 }

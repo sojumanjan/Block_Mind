@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    public static PlayerController Instance { get; private set; }
+
     Rigidbody2D rigid;
 
     InputActions inputActions;
@@ -18,6 +20,7 @@ public class PlayerController : MonoBehaviour
 
     private void Awake()
     {
+        if (Instance == null) Instance = this;
         inputActions = new InputActions();
     }
 

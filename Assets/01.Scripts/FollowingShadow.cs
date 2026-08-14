@@ -26,11 +26,6 @@ public class FollowingShadow : MonoBehaviour
         inputActions.Disable();
     }
 
-    private void Start()
-    {
-        transform.position = new Vector2(8, 0);
-    }
-
     private void FixedUpdate()
     {
         if (Mouse.current.rightButton.isPressed) return;
