@@ -2,7 +2,6 @@ using UnityEngine;
 
 public class ButtonZone : MonoBehaviour
 {
-    [SerializeField] private LayerMask blockLayer;
     [SerializeField] private Door[] connectedDoors; // 연결된 문들 (인스펙터에서 드래그)
 
     private int blockCount = 0; // 현재 이 Zone에 들어와 있는 블럭 개수
