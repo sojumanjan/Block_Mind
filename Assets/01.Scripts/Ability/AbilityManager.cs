@@ -14,9 +14,12 @@ public class AbilityManager : MonoBehaviour
     private void Awake()
     {
         if (Instance == null) Instance = this;
+    }
 
+    private void Start()
+    {
         // 게임 시작 시 능력 false로 설정.
-        SetMarkingFirst(false);
+        SetMarkingFirst(true);
     }
 
     // 마킹 시스템 해금 + 마킹 1개 능력 해금

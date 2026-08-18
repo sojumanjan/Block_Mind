@@ -13,7 +13,8 @@ public class MarkingSystem : MonoBehaviour
     [Header("블럭 설정")]
     [SerializeField] private GameObject blockPrefab;        // 이동할 블럭 프리팹
     [SerializeField] private float moveSpeed = 5f;          // 블럭 이동 속도
-    [SerializeField] private float waitTime = 1f;           // 각 지점에서 머무는 시간
+    [SerializeField] private float waitTime = 1f;           // 첫, 마지막 지점에서 머무는 시간
+    [SerializeField] private float cooldownTime = 3f;
 
     [Header("플레이어 동반 이동 설정")]
     [SerializeField] private LayerMask playerLayer;         // 플레이어 레이어
@@ -85,6 +86,7 @@ public class MarkingSystem : MonoBehaviour
         if (isMoving) return;
 
         StartCoroutine(MoveBlockAlongPath());
+        FollowingShadow.Instance.gameObject.SetActive(false);
     }
 
     private IEnumerator MoveBlockAlongPath()
@@ -104,9 +106,8 @@ public class MarkingSystem : MonoBehaviour
                 Vector3 prevPos = block.transform.position;
 
                 Vector3 newPos = Vector3.MoveTowards(prevPos, target, moveSpeed * Time.deltaTime);
-                Vector3 delta = newPos - prevPos; // 이번 프레임 이동량
+                Vector3 delta = newPos - prevPos;
 
-                // 블럭 위 플레이어 감지 → X축 방향만 함께 이동
                 CarryPlayerOnTop(block.transform.position, delta);
 
                 block.transform.position = newPos;
@@ -122,7 +123,12 @@ public class MarkingSystem : MonoBehaviour
             Destroy(block);
 
         ClearMarks();
+
+        // 쿨타임 동안 마킹 입력 차단
+        yield return new WaitForSeconds(cooldownTime);
+
         isMoving = false;
+        FollowingShadow.Instance.gameObject.SetActive(true);
     }
 
     // 블럭 윗면에 올라탄 플레이어를 delta의 X축 성분만큼만 함께 이동

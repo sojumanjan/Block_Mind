@@ -9,6 +9,8 @@ public class FollowingShadow : MonoBehaviour
 
     InputActions inputActions;
 
+    public bool isFollowing = true;
+
     private void Awake()
     {
         if (Instance == null) Instance = this;
@@ -40,5 +42,10 @@ public class FollowingShadow : MonoBehaviour
     public void MoveShadowToNextRoom(Transform target)
     {
         transform.position = target.position;
+    }
+
+    public void SetFollowing(bool following)
+    {
+        isFollowing = following;
     }
 }
