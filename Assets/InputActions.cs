@@ -194,6 +194,16 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""initialStateCheck"": true,
                     ""priority"": 0
+                },
+                {
+                    ""name"": ""Undo"",
+                    ""type"": ""Button"",
+                    ""id"": ""b012b530-344f-4e8f-bdbd-f07c4d95ba73"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false,
+                    ""priority"": 0
                 }
             ],
             ""bindings"": [
@@ -240,6 +250,17 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
                     ""action"": ""ChangeSpeed"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""163bc20f-8744-4af7-ab90-5468cd635f3a"",
+                    ""path"": ""<Keyboard>/r"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Undo"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -254,6 +275,7 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
         m_Block = asset.FindActionMap("Block", throwIfNotFound: true);
         m_Block_StartMoving = m_Block.FindAction("StartMoving", throwIfNotFound: true);
         m_Block_ChangeSpeed = m_Block.FindAction("ChangeSpeed", throwIfNotFound: true);
+        m_Block_Undo = m_Block.FindAction("Undo", throwIfNotFound: true);
     }
 
     ~@InputActions()
@@ -444,6 +466,7 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
     private List<IBlockActions> m_BlockActionsCallbackInterfaces = new List<IBlockActions>();
     private readonly InputAction m_Block_StartMoving;
     private readonly InputAction m_Block_ChangeSpeed;
+    private readonly InputAction m_Block_Undo;
     /// <summary>
     /// Provides access to input actions defined in input action map "Block".
     /// </summary>
@@ -463,6 +486,10 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Block/ChangeSpeed".
         /// </summary>
         public InputAction @ChangeSpeed => m_Wrapper.m_Block_ChangeSpeed;
+        /// <summary>
+        /// Provides access to the underlying input action "Block/Undo".
+        /// </summary>
+        public InputAction @Undo => m_Wrapper.m_Block_Undo;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -495,6 +522,9 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
             @ChangeSpeed.started += instance.OnChangeSpeed;
             @ChangeSpeed.performed += instance.OnChangeSpeed;
             @ChangeSpeed.canceled += instance.OnChangeSpeed;
+            @Undo.started += instance.OnUndo;
+            @Undo.performed += instance.OnUndo;
+            @Undo.canceled += instance.OnUndo;
         }
 
         /// <summary>
@@ -512,6 +542,9 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
             @ChangeSpeed.started -= instance.OnChangeSpeed;
             @ChangeSpeed.performed -= instance.OnChangeSpeed;
             @ChangeSpeed.canceled -= instance.OnChangeSpeed;
+            @Undo.started -= instance.OnUndo;
+            @Undo.performed -= instance.OnUndo;
+            @Undo.canceled -= instance.OnUndo;
         }
 
         /// <summary>
@@ -588,5 +621,12 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnChangeSpeed(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Undo" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnUndo(InputAction.CallbackContext context);
     }
 }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class MarkingSystem : MonoBehaviour
+public class MarkingManager : MonoBehaviour
 {
     [Header("마킹 설정")]
     [SerializeField] private int maxMarkingCount = 5;      // 최대 마킹 가능 횟수 (인스펙터 조절)
@@ -26,6 +26,13 @@ public class MarkingSystem : MonoBehaviour
 
     private InputActions inputActions;
     private bool isMoving = false;
+
+    private Coroutine moveRoutine;      // 진행 중인 블럭 이동/뒷처리 코루틴
+    private GameObject activeBlock;     // 실체화되어 있는 블럭 (없으면 null)
+
+    public bool IsMoving => isMoving;
+    public int MarkCount => markPositions.Count;
+    public bool HasActiveBlock => activeBlock != null;
 
     private void Awake()
     {
@@ -85,15 +92,51 @@ public class MarkingSystem : MonoBehaviour
         if (markPositions.Count < 1) return;
         if (isMoving) return;
 
-        StartCoroutine(MoveBlockAlongPath());
-        FollowingShadow.Instance.gameObject.SetActive(false);
+        moveRoutine = StartCoroutine(MoveBlockAlongPath());
+
+        if (FollowingShadow.Instance != null)
+            FollowingShadow.Instance.gameObject.SetActive(false);
+    }
+
+    // 최근에 찍은 마킹 하나를 제거. 블럭이 이동 중이거나 쿨타임이면 무시.
+    // 되돌릴 마킹이 있었으면 true.
+    public bool UndoLastMark()
+    {
+        if (isMoving) return false;
+        if (markPositions.Count == 0) return false;
+
+        int last = markPositions.Count - 1;
+        markPositions.RemoveAt(last);
+
+        // markerPrefab이 없으면 markerObjects는 비어 있으므로 인덱스를 확인
+        if (markerObjects.Count > last)
+        {
+            GameObject marker = markerObjects[last];
+            markerObjects.RemoveAt(last);
+            if (marker != null) Destroy(marker);
+        }
+
+        return true;
+    }
+
+    // 실체화된 블럭을 즉시 제거하고, 블럭이 끝점에 도착했을 때와 동일한 뒷처리를 진행.
+    // 취소할 블럭이 있었으면 true. (쿨타임 중이면 블럭이 없으므로 false)
+    public bool CancelBlockMove()
+    {
+        if (activeBlock == null) return false;
+
+        if (moveRoutine != null)
+            StopCoroutine(moveRoutine);
+
+        moveRoutine = StartCoroutine(FinishSequence());
+        return true;
     }
 
     private IEnumerator MoveBlockAlongPath()
     {
         isMoving = true;
 
-        GameObject block = Instantiate(blockPrefab, markPositions[0], Quaternion.identity);
+        activeBlock = Instantiate(blockPrefab, markPositions[0], Quaternion.identity);
 
         yield return new WaitForSeconds(waitTime);
 
@@ -101,34 +144,49 @@ public class MarkingSystem : MonoBehaviour
         {
             Vector3 target = markPositions[i];
 
-            while (block != null && Vector3.Distance(block.transform.position, target) > 0.001f)
+            while (activeBlock != null && Vector3.Distance(activeBlock.transform.position, target) > 0.001f)
             {
-                Vector3 prevPos = block.transform.position;
+                Vector3 prevPos = activeBlock.transform.position;
 
                 Vector3 newPos = Vector3.MoveTowards(prevPos, target, moveSpeed * Time.deltaTime);
                 Vector3 delta = newPos - prevPos;
 
-                CarryPlayerOnTop(block.transform.position, delta);
+                CarryPlayerOnTop(activeBlock.transform.position, delta);
 
-                block.transform.position = newPos;
+                activeBlock.transform.position = newPos;
                 yield return null;
             }
 
-            if (block == null) break;
+            if (activeBlock == null) break;
 
             yield return new WaitForSeconds(waitTime);
         }
 
-        if (block != null)
-            Destroy(block);
+        yield return FinishSequence();
+    }
 
+    // 블럭 도착 / 취소 공통 뒷처리: 블럭 제거 -> 마킹 초기화 -> 쿨타임 -> 그림자 복귀
+    private IEnumerator FinishSequence()
+    {
+        DestroyActiveBlock();
         ClearMarks();
 
         // 쿨타임 동안 마킹 입력 차단
         yield return new WaitForSeconds(cooldownTime);
 
         isMoving = false;
-        FollowingShadow.Instance.gameObject.SetActive(true);
+        moveRoutine = null;
+
+        if (FollowingShadow.Instance != null)
+            FollowingShadow.Instance.gameObject.SetActive(true);
+    }
+
+    private void DestroyActiveBlock()
+    {
+        if (activeBlock == null) return;
+
+        Destroy(activeBlock);
+        activeBlock = null;
     }
 
     // 블럭 윗면에 올라탄 플레이어를 delta의 X축 성분만큼만 함께 이동

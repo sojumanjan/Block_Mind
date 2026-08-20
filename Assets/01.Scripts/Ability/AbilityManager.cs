@@ -7,7 +7,7 @@ public class AbilityManager : MonoBehaviour
 
     [Header("능력 오브젝트 참조")]
     [SerializeField] private FollowingShadow followingShadow;
-    [SerializeField] private MarkingSystem markingSystem;
+    [SerializeField] private MarkingManager markingSystem;
 
     public bool HasShadowAbility { get; private set; }
 

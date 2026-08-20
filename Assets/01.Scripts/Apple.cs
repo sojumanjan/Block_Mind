@@ -7,7 +7,8 @@ public class Apple : MonoBehaviour
     {
         if (collision.CompareTag("Player"))
         {
-
+            AppleManager.Instance.GetApple();
+            Destroy(gameObject);
         }
     }
 }
