@@ -35,7 +35,7 @@ public class MarkingUndoHandler : MonoBehaviour
         if (markingSystem == null) return;
 
         // 블럭이 실체화된 상태가 우선. 취소되면 마킹은 뒷처리에서 함께 정리된다.
-        if (markingSystem.CancelBlockMove()) return;
+        if (markingSystem.TryCancelBlockMove()) return;
 
         markingSystem.UndoLastMark();
     }

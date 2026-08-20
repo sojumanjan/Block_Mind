@@ -121,7 +121,7 @@ public class MarkingManager : MonoBehaviour
 
     // 실체화된 블럭을 즉시 제거하고, 블럭이 끝점에 도착했을 때와 동일한 뒷처리를 진행.
     // 취소할 블럭이 있었으면 true. (쿨타임 중이면 블럭이 없으므로 false)
-    public bool CancelBlockMove()
+    public bool TryCancelBlockMove()
     {
         if (activeBlock == null) return false;
 
