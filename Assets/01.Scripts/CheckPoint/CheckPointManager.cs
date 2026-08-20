@@ -12,6 +12,7 @@ public class CheckpointManager : MonoBehaviour
         if (Instance == null) Instance = this;
     }
 
+    // 체크포인트에서 호출
     public void ActivateCheckpoint(Checkpoint checkpoint, Vector3 pos, Collider2D player)
     {
         if (currentActive == checkpoint) return; // 이미 이게 활성 상태면 무시
@@ -28,5 +29,10 @@ public class CheckpointManager : MonoBehaviour
         PlayerLifeManager lifeManager = player.GetComponent<PlayerLifeManager>();
         if (lifeManager != null)
             lifeManager.SetSpawnPosition(pos);
+    }
+
+    public Checkpoint GetCheckPoint()
+    {
+        return currentActive;
     }
 }

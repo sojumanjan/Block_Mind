@@ -16,6 +16,7 @@ public class Room : MonoBehaviour
     public ButtonZone[] ButtonZones { get; private set; }
     public Checkpoint Checkpoint { get; private set; }
     public CinemachineCamera Vcam { get; private set; }
+    public Transform shadowSpawnPoint { get; private set; }
 
     private void Awake()
     {
@@ -23,6 +24,7 @@ public class Room : MonoBehaviour
         ButtonZones = GetComponentsInChildren<ButtonZone>(true);
         Checkpoint = GetComponentInChildren<Checkpoint>(true);
         Vcam = GetComponentInChildren<CinemachineCamera>(true);
+        shadowSpawnPoint = GetComponentInChildren<ShadowSpawnPoint>().transform;
     }
 
     public void MarkVisited()

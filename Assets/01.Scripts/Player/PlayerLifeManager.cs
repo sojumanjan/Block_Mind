@@ -25,7 +25,6 @@ public class PlayerLifeManager : MonoBehaviour
     {
         if (collision.CompareTag("Obstacle"))
         {
-            OnDie?.Invoke();
             Die();
         }
     }
@@ -33,6 +32,7 @@ public class PlayerLifeManager : MonoBehaviour
     public void Die()
     {
         Debug.Log("플레이어 장애물 닿아 사망이요");
+        OnDie?.Invoke();
         transform.position = respawnPoint;
     }
 
