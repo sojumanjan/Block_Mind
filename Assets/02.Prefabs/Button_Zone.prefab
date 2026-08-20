@@ -84,7 +84,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 1, g: 0.9729372, b: 0, a: 0.34509805}
+  m_Color: {r: 1, g: 1, b: 0, a: 0.3137255}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -152,8 +152,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ad9875c0cdab4e4c9d53d97fcae84e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonZone
-  blockLayer:
-    serializedVersion: 2
-    m_Bits: 512
   connectedDoors:
   - {fileID: 0}
+  inactiveColor: {r: 1, g: 1, b: 0, a: 0.3137255}
+  activeColor: {r: 1, g: 0.9611651, b: 0, a: 0.78431374}
