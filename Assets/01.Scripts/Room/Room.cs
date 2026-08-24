@@ -3,8 +3,8 @@ using UnityEngine;
 
 public class Room : MonoBehaviour
 {
-    private const float RoomWidth = 32f;
-    private const float RoomHeight = 18f;
+    public const float Width = 32f;
+    public const float Height = 18f;
 
     [SerializeField] private Vector2 coordinate;
 
@@ -35,8 +35,8 @@ public class Room : MonoBehaviour
     public void MoveToCoordinatePosition()
     {
         Vector3 pos = transform.position;
-        pos.x = (coordinate.x - 1f) * RoomWidth;
-        pos.y = coordinate.y * RoomHeight;
+        pos.x = (coordinate.x - 1f) * Width;
+        pos.y = coordinate.y * Height;
         transform.position = pos;
     }
 }

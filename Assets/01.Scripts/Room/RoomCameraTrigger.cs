@@ -11,9 +11,12 @@ public class RoomCameraTrigger : MonoBehaviour
     [SerializeField] private Transform shadowSpawnPoint;
 
     private BoxCollider2D box;
+    private Room room;
+
     private void Awake()
     {
         box = GetComponent<BoxCollider2D>();
+        room = GetComponentInParent<Room>();
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -23,7 +26,11 @@ public class RoomCameraTrigger : MonoBehaviour
             roomCamera.Priority = activePriority; // 이 방 카메라를 최우선으로
 
             if (FollowingShadow.Instance != null)
-                FollowingShadow.Instance.MoveShadowToNextRoom(GetComponentInParent<Room>().shadowSpawnPoint);
+                FollowingShadow.Instance.MoveShadowToNextRoom(room.shadowSpawnPoint);
+
+            // 지도에 현재 방을 알림 (방문 처리도 MapUI에서 함께)
+            if (MapUI.Instance != null)
+                MapUI.Instance.SetCurrentRoom(room);
         }
     }
 

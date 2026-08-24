@@ -58,10 +58,14 @@ public class MarkingManager : MonoBehaviour
         HandleMarkingInput();
     }
 
+    // 지도가 열려 있으면 마우스 입력은 지도 것으로 본다.
+    private bool IsMapOpen => MapUI.Instance != null && MapUI.Instance.IsOpen;
+
     // 좌클릭 시 그림자 마킹을 남김.
     private void HandleMarkingInput()
     {
         if (isMoving) return;
+        if (IsMapOpen) return;   // 지도 드래그가 마킹으로 새는 것을 막음
 
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
@@ -95,6 +99,7 @@ public class MarkingManager : MonoBehaviour
     {
         if (markPositions.Count < 1) return;
         if (isMoving) return;
+        if (IsMapOpen) return;   // 지도가 열려 있으면 우클릭을 무시
 
         moveRoutine = StartCoroutine(MoveBlockAlongPath());
 

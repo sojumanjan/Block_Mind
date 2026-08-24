@@ -42,6 +42,14 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // 지도가 열려 있으면 조작을 막는다. 중력/낙하는 그대로 둔다.
+        if (MapUI.Instance != null && MapUI.Instance.IsOpen)
+        {
+            moveDir.x = 0f;
+            elaspedTime = -1f;   // 버퍼에 남은 점프 입력도 취소
+            return;
+        }
+
         moveDir.x = inputActions.Player.Move.ReadValue<float>();
 
         if (elaspedTime >= 0) elaspedTime -= Time.deltaTime;

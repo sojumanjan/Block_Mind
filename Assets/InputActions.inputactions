@@ -177,6 +177,35 @@
                     "isPartOfComposite": false
                 }
             ]
+        },
+        {
+            "name": "UI",
+            "id": "d0d8fdfb-d88b-4f4d-a930-cfba302f1f06",
+            "actions": [
+                {
+                    "name": "Map",
+                    "type": "Button",
+                    "id": "f917303f-d1e0-4561-a46d-993a5876b390",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "8bfc2df3-a465-4321-82f8-bda79d0ef577",
+                    "path": "<Keyboard>/m",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Map",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
         }
     ],
     "controlSchemes": []
