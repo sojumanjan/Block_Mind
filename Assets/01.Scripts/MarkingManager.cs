@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 
 public class MarkingManager : MonoBehaviour
 {
+    public static MarkingManager Instance;
     [Header("마킹 설정")]
     [SerializeField] private int maxMarkingCount = 5;      // 최대 마킹 가능 횟수 (인스펙터 조절)
     [SerializeField] private Transform markSourceTransform; // 마킹 위치의 기준이 되는 오브젝트
@@ -37,6 +38,7 @@ public class MarkingManager : MonoBehaviour
     private void Awake()
     {
         inputActions = new InputActions();
+        if (Instance == null) Instance = this;
     }
 
     private void OnEnable()
@@ -76,6 +78,7 @@ public class MarkingManager : MonoBehaviour
         }
     }
 
+    // 그림자 위치에 마커를 남김.
     private void AddMark(Vector3 pos)
     {
         markPositions.Add(pos);
@@ -87,6 +90,7 @@ public class MarkingManager : MonoBehaviour
         }
     }
 
+    // 우클릭 시 마킹이 하나라도 되어있다면 블럭 실체화를 시작함.
     private void OnStartMoving(InputAction.CallbackContext context)
     {
         if (markPositions.Count < 1) return;
@@ -98,8 +102,7 @@ public class MarkingManager : MonoBehaviour
             FollowingShadow.Instance.gameObject.SetActive(false);
     }
 
-    // 최근에 찍은 마킹 하나를 제거. 블럭이 이동 중이거나 쿨타임이면 무시.
-    // 되돌릴 마킹이 있었으면 true.
+    // 최근에 찍은 마킹 하나를 제거. 블럭이 이동 중이거나 쿨타임이면 무시. 되돌릴 마킹이 있었으면 true.
     public bool UndoLastMark()
     {
         if (isMoving) return false;
@@ -120,7 +123,7 @@ public class MarkingManager : MonoBehaviour
     }
 
     // 실체화된 블럭을 즉시 제거하고, 블럭이 끝점에 도착했을 때와 동일한 뒷처리를 진행.
-    // 취소할 블럭이 있었으면 true. (쿨타임 중이면 블럭이 없으므로 false)
+    // 취소할 블럭이 있었으면 true. (쿨타임 중이면 블럭이 없으므로 false). MarkingUndoHandler에서 호출.
     public bool TryCancelBlockMove()
     {
         if (activeBlock == null) return false;
@@ -132,6 +135,7 @@ public class MarkingManager : MonoBehaviour
         return true;
     }
 
+    // 경로를 따라 블럭을 이동시키는 코루틴.
     private IEnumerator MoveBlockAlongPath()
     {
         isMoving = true;
@@ -165,7 +169,7 @@ public class MarkingManager : MonoBehaviour
         yield return FinishSequence();
     }
 
-    // 블럭 도착 / 취소 공통 뒷처리: 블럭 제거 -> 마킹 초기화 -> 쿨타임 -> 그림자 복귀
+    // 블럭 도착 -> 블럭 제거 -> 마킹 초기화 -> 쿨타임 -> 그림자 복귀
     private IEnumerator FinishSequence()
     {
         DestroyActiveBlock();
@@ -219,6 +223,24 @@ public class MarkingManager : MonoBehaviour
         foreach (var m in markerObjects)
             if (m != null) Destroy(m);
         markerObjects.Clear();
+    }
+
+    // 체크포인트 활성화 등 외부 요청으로 마킹 상태를 즉시 초기화. 쿨타임 없음.
+    public void ResetMarkingState()
+    {
+        if (moveRoutine != null)
+        {
+            StopCoroutine(moveRoutine);
+            moveRoutine = null;
+        }
+
+        DestroyActiveBlock();
+        ClearMarks();
+
+        isMoving = false;
+
+        if (FollowingShadow.Instance != null)
+            FollowingShadow.Instance.gameObject.SetActive(true);
     }
 
     [Header("기즈모 미리보기")]

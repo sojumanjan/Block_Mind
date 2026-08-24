@@ -25,6 +25,7 @@ public class Key : MonoBehaviour
     private float velocityX;
     private float velocityY;
     private float bobOffset;
+    private Vector2 originPos;
 
     private void Start()
     {
@@ -32,6 +33,7 @@ public class Key : MonoBehaviour
             .SetEase(Ease.InOutSine)
             .SetLoops(-1, LoopType.Yoyo)
             .SetLink(gameObject);
+        originPos = transform.position;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -51,17 +53,6 @@ public class Key : MonoBehaviour
             transform.DOPunchScale(Vector3.one * punchScale, punchDuration, 1, 0.5f)
                 .SetLink(gameObject);
         }
-    }
-
-    // 문을 열 때 PlayerKeyHolder가 호출
-    public void Consume()
-    {
-        followTarget = null;
-
-        transform.DOScale(Vector3.zero, consumeDuration)
-            .SetEase(consumeEase)
-            .SetLink(gameObject)
-            .OnComplete(() => Destroy(gameObject));
     }
 
     private void LateUpdate()
@@ -88,5 +79,24 @@ public class Key : MonoBehaviour
 
         pos.z = 0f;
         transform.position = pos;
+    }
+
+    // 문을 열 때 PlayerKeyHolder가 호출
+    public void Consume()
+    {
+        followTarget = null;
+
+        transform.DOScale(Vector3.zero, consumeDuration)
+            .SetEase(consumeEase)
+            .SetLink(gameObject)
+            .OnComplete(() => Destroy(gameObject));
+    }
+
+    // 열쇠 위치 초기화 후 콜라이더 다시 On
+    public void ResetLocation()
+    {
+        followTarget = null;
+        transform.position = originPos;
+        GetComponent<Collider2D>().enabled = true;
     }
 }

@@ -2,9 +2,15 @@ using UnityEngine;
 
 public class PlayerKeyHolder : MonoBehaviour
 {
+    public static PlayerKeyHolder Instance;
     private Key heldKey;
 
     public bool HasKey => heldKey != null;
+
+    private void Awake()
+    {
+        if (Instance == null) Instance = this;
+    }
 
     public void AddKey(Key key)
     {
@@ -17,5 +23,13 @@ public class PlayerKeyHolder : MonoBehaviour
 
         heldKey.Consume();
         heldKey = null;
+    }
+
+    public void ResetKey()
+    {
+        if (heldKey != null) {
+            heldKey.ResetLocation();
+            heldKey = null;
+        }
     }
 }
