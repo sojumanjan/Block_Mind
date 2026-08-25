@@ -60,7 +60,14 @@ public class FollowingShadow : MonoBehaviour
     public void ResetShadowCurRoom()
     {
         Debug.Log("그림자 리셋");
-        Room room = CheckpointManager.Instance.GetCheckPoint().GetComponentInParent<Room>();
+
+        Checkpoint checkpoint = CheckpointManager.Instance.GetCheckPoint();
+
+        // CheckpointManager가 defaultCheckpoint로 시작 상태를 보장하므로 보통 null이 아니다.
+        // 다만 defaultCheckpoint 미할당이나 방 밖에 놓인 체크포인트에서 null이 될 수 있어 확인한다.
+        Room room = checkpoint != null ? checkpoint.GetComponentInParent<Room>() : null;
+        if (room == null || room.shadowSpawnPoint == null) return;
+
         transform.position = room.shadowSpawnPoint.position;
     }
 }

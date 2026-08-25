@@ -123,17 +123,6 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "545ee574-9bc5-4d91-90f0-131f7ff4de45",
-                    "path": "<Keyboard>/f",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "StartMoving",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "3f9d83c7-0026-4d8b-ae3a-8827bf4d0eee",
                     "path": "<Mouse>/rightButton",
                     "interactions": "",
@@ -191,6 +180,16 @@
                     "interactions": "",
                     "initialStateCheck": false,
                     "priority": 0
+                },
+                {
+                    "name": "Interact",
+                    "type": "Button",
+                    "id": "b9501360-c360-4a0d-8f81-389e55fc8767",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
                 }
             ],
             "bindings": [
@@ -202,6 +201,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "Map",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "965d99af-6423-48fc-832b-9206cc4d3de1",
+                    "path": "<Keyboard>/f",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Interact",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

@@ -68,6 +68,15 @@ public class MapUI : MonoBehaviour
     [SerializeField] private RectTransform playerMarker;   // 없어도 동작
     [SerializeField] private bool showPlayerMarker = true;
 
+    [Header("고속이동 차원문")]
+    [Tooltip("차원문 아이콘 프리팹. Image + Button이 붙어 있어야 한다")]
+    [SerializeField] private RectTransform portalIconPrefab;
+    [SerializeField] private Vector2 portalIconSize = new Vector2(12f, 12f);
+    [Tooltip("차원문 아이콘 색. 흰색이면 스프라이트 원본 색이 그대로 나온다. 모드와 무관하게 항상 같은 색을 쓴다")]
+    [SerializeField] private Color portalIconColor = Color.white;
+    [Tooltip("이 픽셀 이상 끌면 클릭이 아니라 드래그로 본다")]
+    [SerializeField] private float dragThreshold = 6f;
+
     private readonly Dictionary<Room, Image> cells = new Dictionary<Room, Image>();
     private InputActions inputActions;
 
@@ -78,7 +87,16 @@ public class MapUI : MonoBehaviour
     private RectTransform panelRect;
     private float zoom = 1f;
 
+    // 일반 보기(M)와 고속이동(차원문에서 F) 두 모드가 있다.
+    // 차원문 선택은 Travel 모드에서만 가능하다.
+    private enum MapMode { View, Travel }
+    private MapMode mode = MapMode.View;
+
+    private readonly Dictionary<Portal, Button> portalIcons = new Dictionary<Portal, Button>();
+    private Portal originPortal;    // Travel 모드로 열 때 올라가 있던 차원문
+
     private bool isDragging;
+    private bool dragMoved;         // 이번 누름이 임계값을 넘어 드래그가 되었나 (클릭과 구분)
     private Vector2 dragStartLocal;
     private Vector2 dragStartAnchored;
 
@@ -95,11 +113,13 @@ public class MapUI : MonoBehaviour
     {
         inputActions.Enable();
         inputActions.UI.Map.performed += OnToggleMap;
+        inputActions.UI.Interact.performed += OnInteract;
     }
 
     private void OnDisable()
     {
         inputActions.UI.Map.performed -= OnToggleMap;
+        inputActions.UI.Interact.performed -= OnInteract;
         inputActions.Disable();
     }
 
@@ -168,13 +188,20 @@ public class MapUI : MonoBehaviour
             cells[room] = image;
         }
 
-        // 테두리와 마커를 셀보다 위로
+        BuildPortalIcons(rooms);
+
+        // 렌더 순서를 형제 순서로 정한다. 뒤에 있는 형제가 위에 그려진다.
+        //   셀 < 현재 방 테두리 < 차원문 아이콘 < 플레이어 마커
         if (currentRoomHighlight != null)
         {
             currentRoomHighlight.sizeDelta = cellSize;
             currentRoomHighlight.SetAsLastSibling();
             currentRoomHighlight.gameObject.SetActive(false);
         }
+
+        foreach (Button icon in portalIcons.Values)
+            icon.transform.SetAsLastSibling();
+
         if (playerMarker != null)
             playerMarker.SetAsLastSibling();
     }
@@ -183,6 +210,74 @@ public class MapUI : MonoBehaviour
     private Vector2 CoordinateToLocal(Vector2 coordinate)
     {
         return (coordinate - gridCenter) * (cellSize + gap);
+    }
+
+    // 방 안의 월드 좌표 -> 그 방 셀 안의 컨테이너 로컬 좌표(px)
+    // Room의 Transform은 방 중앙이므로 좌하단으로 옮겨 0~1 비율을 낸다.
+    private Vector2 WorldToCellLocal(Room room, Vector3 worldPosition)
+    {
+        Vector3 roomCenter = room.transform.position;
+
+        float u = Mathf.Clamp01((worldPosition.x - (roomCenter.x - Room.Width * 0.5f)) / Room.Width);
+        float v = Mathf.Clamp01((worldPosition.y - (roomCenter.y - Room.Height * 0.5f)) / Room.Height);
+
+        Vector2 cellOrigin = CoordinateToLocal(room.Coordinate) - cellSize * 0.5f;
+        return cellOrigin + new Vector2(u * cellSize.x, v * cellSize.y);
+    }
+
+    // 차원문 아이콘은 구운 텍스처가 아니라 별도 UI여야 한다. 텍스처 픽셀은 클릭을 못 받는다.
+    private void BuildPortalIcons(Room[] rooms)
+    {
+        if (portalIconPrefab == null || cellContainer == null) return;
+
+        foreach (Room room in rooms)
+        {
+            if (room.Portals == null) continue;
+
+            foreach (Portal portal in room.Portals)
+            {
+                RectTransform icon = Instantiate(portalIconPrefab, cellContainer);
+                icon.name = "Portal " + room.name;
+                icon.sizeDelta = portalIconSize;
+
+                // 발밑을 기준점으로 두어 아이콘을 키워도 위로만 자라게 한다
+                icon.pivot = new Vector2(0.5f, 0f);
+                icon.anchoredPosition = WorldToCellLocal(room, portal.MapFootPosition);
+
+                // 차원문 스프라이트를 그대로 아이콘으로 쓴다. 비율은 유지한다.
+                Image iconImage = icon.GetComponent<Image>();
+                if (iconImage != null)
+                {
+                    Sprite sprite = portal.MapIcon;
+                    if (sprite != null)
+                    {
+                        iconImage.sprite = sprite;
+                        iconImage.preserveAspect = true;
+                    }
+                }
+
+                Button button = icon.GetComponent<Button>();
+                if (button == null)
+                {
+                    Debug.LogWarning("portalIconPrefab에 Button이 없습니다. 선택할 수 없습니다.", this);
+                    continue;
+                }
+
+                // Button의 ColorTint는 targetGraphic의 색을 자기가 덮어쓴다.
+                // 상태별 색은 MapUI가 Image.color로 직접 칠하므로 트랜지션을 끈다.
+                // (켜두면 interactable=false일 때 disabledColor의 알파가 먹어 반투명해진다)
+                button.transition = Selectable.Transition.None;
+
+                // 프리팹에 없더라도 호버 피드백이 붙도록 보장
+                if (icon.GetComponent<MapPortalIconHover>() == null)
+                    icon.gameObject.AddComponent<MapPortalIconHover>();
+
+                Portal captured = portal;   // 클로저가 반복 변수를 잡지 않도록 복사
+                button.onClick.AddListener(() => OnPortalClicked(captured));
+
+                portalIcons[portal] = button;
+            }
+        }
     }
 
     // ---------------------------------------------------------------- 타일 구조 굽기
@@ -269,6 +364,10 @@ public class MapUI : MonoBehaviour
 
                 foreach (SpriteRenderer renderer in room.GetComponentsInChildren<SpriteRenderer>(true))
                 {
+                    // 차원문은 클릭 가능한 UI 아이콘으로 따로 그린다.
+                    // 여기서도 찍으면 아이콘 밑에 픽셀 덩어리가 남아 지저분해진다.
+                    if (renderer.GetComponentInParent<Portal>() != null) continue;
+
                     Bounds bounds = renderer.bounds;
 
                     // 방보다 큰 스프라이트는 배경 장식으로 보고 건너뛴다 (셀을 통째로 덮어버린다)
@@ -465,39 +564,76 @@ public class MapUI : MonoBehaviour
     {
         if (panel == null) return;
 
-        bool opening = !panel.activeSelf;
-        panel.SetActive(opening);
-
-        if (!opening)
+        if (panel.activeSelf)
         {
-            isDragging = false;
+            Close();
             return;
         }
 
-        ResetView();
+        Open(MapMode.View, null);
+    }
+
+    // 차원문에 올라간 상태에서 상호작용키(F).
+    private void OnInteract(InputAction.CallbackContext context)
+    {
+        if (panel == null) return;
+
+        if (panel.activeSelf)
+        {
+            // F로 연 지도는 F로 닫는다. M으로 연 지도는 M으로만 닫는다.
+            if (mode == MapMode.Travel) Close();
+            return;
+        }
+
+        Portal origin = Portal.Current;
+        if (origin == null) return;             // 차원문에 올라가 있지 않음
+
+        Open(MapMode.Travel, origin);
+    }
+
+    private void Open(MapMode openMode, Portal origin)
+    {
+        mode = openMode;
+        originPortal = origin;
+
+        panel.SetActive(true);
+
+        // Travel 모드에서는 출발 차원문이 있는 방을 중앙에 둔다
+        ResetView(origin != null && origin.Room != null ? origin.Room : currentRoom);
         Refresh();
+    }
+
+    private void Close()
+    {
+        panel.SetActive(false);
+
+        mode = MapMode.View;
+        originPortal = null;
+        isDragging = false;
+        dragMoved = false;
     }
 
     // 열 때마다 기본 배율로 돌리고 현재 방을 화면 정가운데에 둔다.
     // 이전에 보던 위치를 유지하고 싶으면 이 호출만 빼면 된다.
-    private void ResetView()
+    private void ResetView(Room focus)
     {
         zoom = Mathf.Clamp(defaultZoom, minZoom, maxZoom);
         ApplyZoom();
-        CenterOnCurrentRoom();
+        CenterOnRoom(focus);
 
         isDragging = false;
+        dragMoved = false;
     }
 
-    // 현재 방의 셀이 패널 중앙에 오도록 컨테이너를 옮긴다.
+    // 지정한 방의 셀이 패널 중앙에 오도록 컨테이너를 옮긴다.
     // 셀의 컨테이너 로컬 위치가 zoom배로 확대되므로 그만큼 반대로 밀어준다.
-    private void CenterOnCurrentRoom()
+    private void CenterOnRoom(Room focus)
     {
         if (cellContainer == null) return;
 
-        cellContainer.anchoredPosition = currentRoom == null
+        cellContainer.anchoredPosition = focus == null
             ? Vector2.zero                                              // 아직 방 진입 전이면 격자 중앙
-            : -CoordinateToLocal(currentRoom.Coordinate) * zoom;
+            : -CoordinateToLocal(focus.Coordinate) * zoom;
 
         ClampPosition();
     }
@@ -550,6 +686,7 @@ public class MapUI : MonoBehaviour
             if (TryGetPanelLocalPoint(mouse.position.ReadValue(), out dragStartLocal))
             {
                 isDragging = true;
+                dragMoved = false;      // 누른 순간에는 아직 클릭 후보
                 dragStartAnchored = cellContainer.anchoredPosition;
             }
         }
@@ -565,7 +702,15 @@ public class MapUI : MonoBehaviour
         Vector2 current;
         if (!TryGetPanelLocalPoint(mouse.position.ReadValue(), out current)) return;
 
-        cellContainer.anchoredPosition = dragStartAnchored + (current - dragStartLocal);
+        Vector2 delta = current - dragStartLocal;
+
+        // 임계값을 넘는 순간부터 드래그로 확정. 이후 버튼 클릭은 무시된다.
+        if (!dragMoved && delta.magnitude > dragThreshold)
+            dragMoved = true;
+
+        if (!dragMoved) return;         // 아직 클릭일 수 있으니 지도를 움직이지 않는다
+
+        cellContainer.anchoredPosition = dragStartAnchored + delta;
         ClampPosition();
     }
 
@@ -610,8 +755,77 @@ public class MapUI : MonoBehaviour
                 pair.Value.color = visitedTint;
         }
 
+        UpdatePortalIcons();
         UpdateCurrentRoomHighlight();
         UpdatePlayerMarker();
+    }
+
+    // 방문한 방의 차원문만 보인다. 선택은 Travel 모드에서만 가능하다.
+    private void UpdatePortalIcons()
+    {
+        foreach (KeyValuePair<Portal, Button> pair in portalIcons)
+        {
+            Portal portal = pair.Key;
+            Button button = pair.Value;
+
+            bool visible = portal.Room != null && portal.Room.IsVisited;
+            button.gameObject.SetActive(visible);
+            if (!visible) continue;
+
+            // 선택 가능 여부는 모드로만 갈린다. 색은 어느 모드에서든 동일하게 둔다.
+            button.interactable = mode == MapMode.Travel && portal != originPortal;
+
+            Image image = button.GetComponent<Image>();
+            if (image != null)
+                image.color = portalIconColor;
+        }
+    }
+
+    // 차원문 아이콘 클릭
+    private void OnPortalClicked(Portal target)
+    {
+        if (dragMoved) return;                  // 지도를 끌던 손이 떨어진 것은 클릭이 아니다
+        if (mode != MapMode.Travel) return;     // 일반 지도(M)에서는 선택 불가
+        if (target == null || target == originPortal) return;
+
+        TravelTo(target);
+    }
+
+    private void TravelTo(Portal target)
+    {
+        if (PlayerController.Instance == null) return;
+
+        Transform player = PlayerController.Instance.transform;
+        player.position = target.ArrivalPosition;
+
+        // 이동 전 속도가 남아 있으면 도착 직후 엉뚱한 방향으로 튄다
+        Rigidbody2D body = PlayerController.Instance.GetComponent<Rigidbody2D>();
+        if (body != null)
+        {
+            body.position = target.ArrivalPosition;
+            body.linearVelocity = Vector2.zero;
+        }
+
+        // 맵 반대편으로 날아간 블럭과 경로는 의미가 없으므로 정리한다
+        if (MarkingManager.Instance != null)
+            MarkingManager.Instance.ResetMarkingState();
+
+        Close();
+
+        // 방 카메라는 플레이어가 새 방 트리거에 들어가면서 다음 물리 스텝에 전환된다.
+        // 그때 Cinemachine이 맵을 가로질러 블렌딩하지 않도록 한 프레임 뒤에 끊어준다.
+        StartCoroutine(CutCameraNextFrame());
+    }
+
+    private System.Collections.IEnumerator CutCameraNextFrame()
+    {
+        yield return null;
+        yield return new WaitForFixedUpdate();
+
+        if (Camera.main == null) yield break;
+
+        var brain = Camera.main.GetComponent<Unity.Cinemachine.CinemachineBrain>();
+        if (brain != null) brain.ResetState();
     }
 
     private void UpdateCurrentRoomHighlight()
