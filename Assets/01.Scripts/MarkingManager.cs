@@ -248,6 +248,11 @@ public class MarkingManager : MonoBehaviour
             FollowingShadow.Instance.gameObject.SetActive(true);
     }
 
+    public void GetMarkingCount()
+    {
+        maxMarkingCount++;
+    }
+
     [Header("기즈모 미리보기")]
     [SerializeField] private bool previewTopCheck = true;
 

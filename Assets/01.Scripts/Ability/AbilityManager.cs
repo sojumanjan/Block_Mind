@@ -22,8 +22,8 @@ public class AbilityManager : MonoBehaviour
         SetMarkingFirst(true);
     }
 
-    // 마킹 시스템 해금 + 마킹 1개 능력 해금
-    public void SetMarkingFirst(bool unlocked)
+    // 마킹 시스템 + 마킹 1개 능력 해금
+    private void SetMarkingFirst(bool unlocked)
     {
         HasShadowAbility = unlocked;
 
@@ -36,6 +36,13 @@ public class AbilityManager : MonoBehaviour
             FollowingShadow.Instance.transform.position =  PlayerController.Instance.transform.position;
     }
 
+    // 두번째 마킹 개수 해금
+    private void SetMarkingSecond()
+    {
+        MarkingManager.Instance.GetMarkingCount();
+    }
+
     // 특정 방 진입, 아이템 습득 등 해금 트리거에서 호출
     public void UnlockMarkingFirst() => SetMarkingFirst(true);
+    public void UnlockMarkingSecond() => SetMarkingSecond();
 }

@@ -15,6 +15,7 @@ public class Portal : MonoBehaviour
 
     [Tooltip("미니맵에 쓸 아이콘. 비우면 이 차원문의 SpriteRenderer 스프라이트를 그대로 쓴다.")]
     [SerializeField] private Sprite mapIcon;
+    [SerializeField] private GameObject fKey;
 
     public Room Room { get; private set; }
 
@@ -65,6 +66,7 @@ public class Portal : MonoBehaviour
         if (!other.CompareTag("Player")) return;
 
         Current = this;
+        fKey.SetActive(true);
     }
 
     private void OnTriggerExit2D(Collider2D other)
@@ -72,5 +74,6 @@ public class Portal : MonoBehaviour
         if (!other.CompareTag("Player")) return;
 
         if (Current == this) Current = null;
+        fKey.SetActive(false);
     }
 }
