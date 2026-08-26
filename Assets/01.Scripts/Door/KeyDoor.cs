@@ -22,13 +22,38 @@ public class KeyDoor : MonoBehaviour
         originScale = transform.localScale;
     }
 
-    public void SetOpen(bool open)
+    // Awake 순서가 보장되지 않으므로 모든 Awake가 끝난 Start에서 구독한다
+    private void Start()
+    {
+        if (CheckpointManager.Instance != null)
+            CheckpointManager.Instance.CheckPointActivate += CloseInstantly;
+    }
+
+    private void OnDestroy()
+    {
+        if (CheckpointManager.Instance != null)
+            CheckpointManager.Instance.CheckPointActivate -= CloseInstantly;
+    }
+
+    // 체크포인트가 바뀌면 애니메이션 없이 닫힌 상태로 되돌린다
+    private void CloseInstantly()
+    {
+        SetOpen(false, true);
+    }
+
+    public void SetOpen(bool open, bool instant = false)
     {
         scaleTween?.Kill();
 
         float currentScaleY = transform.localScale.y;
         float targetScaleY = open ? openScale : originScale.y;
         float speed = open ? openSpeed : closeSpeed;
+
+        if (instant)
+        {
+            transform.localScale = new Vector3(transform.localScale.x, targetScaleY, transform.localScale.z);
+            return;
+        }
 
         // 스케일 차이를 실제 월드 유닛 거리로 환산
         float distanceInUnits = Mathf.Abs(targetScaleY - currentScaleY) * baseHeight;

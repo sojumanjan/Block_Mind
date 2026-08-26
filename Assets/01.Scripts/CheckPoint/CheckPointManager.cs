@@ -1,4 +1,5 @@
 // 매니저 - 전체 체크포인트 중 딱 하나만 활성 상태를 유지
+using System;
 using UnityEngine;
 
 public class CheckpointManager : MonoBehaviour
@@ -14,6 +15,8 @@ public class CheckpointManager : MonoBehaviour
     {
         if (Instance == null) Instance = this;
     }
+
+    public event Action CheckPointActivate;
 
     private void Start()
     {
@@ -35,8 +38,6 @@ public class CheckpointManager : MonoBehaviour
     // 체크포인트에서 호출
     public void ActivateCheckpoint(Checkpoint checkpoint, Vector3 pos, Collider2D player)
     {
-        if (currentActive == checkpoint) return; // 이미 이게 활성 상태면 무시
-
         // 이전 체크포인트 비활성화
         if (currentActive != null)
             currentActive.SetVisualState(false);
@@ -49,6 +50,10 @@ public class CheckpointManager : MonoBehaviour
         PlayerLifeManager lifeManager = player.GetComponent<PlayerLifeManager>();
         if (lifeManager != null)
             lifeManager.SetSpawnPosition(pos);
+
+        // 상태 갱신이 끝난 뒤에 방송한다. 중복 판정 위에서 쏘면
+        // 같은 체크포인트를 다시 밟을 때마다 구독자들이 리셋된다.
+        CheckPointActivate?.Invoke();
     }
 
     public Checkpoint GetCheckPoint()

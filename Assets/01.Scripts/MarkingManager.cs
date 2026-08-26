@@ -53,6 +53,19 @@ public class MarkingManager : MonoBehaviour
         inputActions.Disable();
     }
 
+    // Awake 순서가 보장되지 않으므로 모든 Awake가 끝난 Start에서 구독한다
+    private void Start()
+    {
+        if (CheckpointManager.Instance != null)
+            CheckpointManager.Instance.CheckPointActivate += ResetMarkingState;
+    }
+
+    private void OnDestroy()
+    {
+        if (CheckpointManager.Instance != null)
+            CheckpointManager.Instance.CheckPointActivate -= ResetMarkingState;
+    }
+
     private void Update()
     {
         HandleMarkingInput();

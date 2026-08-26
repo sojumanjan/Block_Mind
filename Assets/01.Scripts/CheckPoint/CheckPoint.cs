@@ -17,12 +17,9 @@ public class Checkpoint : MonoBehaviour
     {
         if (!other.CompareTag("Player") && (!other.CompareTag("Block"))) return;
 
-        // 나 자신의 활성화 여부는 매니저에게 위임
+        // 활성화 여부 판정과 방송은 매니저에게 위임한다.
+        // 리셋 대상(열쇠/마킹/문)은 각자 CheckPointActivate를 구독해서 스스로 처리한다.
         CheckpointManager.Instance.ActivateCheckpoint(this, transform.position, other);
-
-        // 현재 마킹 초기화, 실체화블럭 제거, 가지고 있는 열쇠 리셋
-        PlayerKeyHolder.Instance.ResetKey();
-        MarkingManager.Instance.ResetMarkingState();
     }
 
     // 매니저가 상태를 바꿔줄 때 호출 (활성/비활성 스프라이트 갱신용)
