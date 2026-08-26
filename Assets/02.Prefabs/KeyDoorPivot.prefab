@@ -169,6 +169,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1480646391220550394}
   - component: {fileID: 8920513541603284371}
+  - component: {fileID: 2821763927686460569}
   m_Layer: 0
   m_Name: Keyhole
   m_TagString: Untagged
@@ -251,6 +252,19 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
+--- !u!114 &2821763927686460569
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7965719307627605139}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1025f79bc9eea9045906c588c2cc930d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KeepWorldScale
+  targetWorldScale: {x: 1, y: 1, z: 1}
 --- !u!1 &8721793691908764352
 GameObject:
   m_ObjectHideFlags: 0

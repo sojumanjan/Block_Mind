@@ -8,7 +8,12 @@ public class Room : MonoBehaviour
 
     [SerializeField] private Vector2 coordinate;
 
+    [Tooltip("이 방이 속한 스테이지 에셋. 미니맵 지형 색 등 스테이지 공통 속성을 여기서 가져온다")]
+    [SerializeField] private StageData stage;
+
     public Vector2 Coordinate => coordinate;
+
+    public StageData Stage => stage;
 
     public bool IsVisited { get; private set; }
 

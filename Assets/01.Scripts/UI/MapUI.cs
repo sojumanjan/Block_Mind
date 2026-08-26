@@ -31,10 +31,13 @@ public class MapUI : MonoBehaviour
     [Header("타일 구조 표시")]
     [Tooltip("타일 1개를 몇 픽셀로 구울지. 1이면 방당 32x18 텍스처")]
     [SerializeField] private int pixelsPerTile = 1;
+    [Tooltip("StageData가 지정되지 않은 방이 쓰는 기본 지형 색. 스테이지별 색은 각 StageData 에셋에서 설정한다")]
     [SerializeField] private Color groundTileColor = new Color(0.80f, 0.82f, 0.88f, 1f);
     [SerializeField] private Color obstacleTileColor = new Color(0.95f, 0.30f, 0.30f, 1f);
     [SerializeField] private Color passableTileColor = new Color(0.45f, 0.70f, 0.95f, 1f);
     [SerializeField] private Color wireTileColor = new Color(0.55f, 0.50f, 0.35f, 1f);
+    [Tooltip("그림자만 막는 영역. 지형과 구분되어야 한다")]
+    [SerializeField] private Color blockZoneTileColor = new Color(0.65f, 0.40f, 0.95f, 1f);
 
     [Header("오브젝트 표시 (문 / 버튼 / 레이저 등)")]
     [Tooltip("타일맵이 아닌 방 자식 오브젝트를 SpriteRenderer 범위로 찍는다")]
@@ -301,6 +304,7 @@ public class MapUI : MonoBehaviour
         // 좌표 -> 방, 방 -> 픽셀 버퍼
         var byCoordinate = new Dictionary<Vector2Int, Room>();
         var buffers = new Dictionary<Room, Color32[]>();
+        var groundColors = new Dictionary<Room, Color32>();
 
         foreach (Room room in rooms)
         {
@@ -309,6 +313,9 @@ public class MapUI : MonoBehaviour
 
             var buffer = new Color32[width * height];   // 기본값은 투명
             buffers[room] = buffer;
+
+            // 스테이지 조회를 타일마다 하지 않도록 방 단위로 미리 구해둔다
+            groundColors[room] = GroundColorOf(room);
         }
 
         // Ground -> Wire/Passable -> Obstacle 순으로 덮어써서 위험 요소가 위에 보이도록
@@ -317,7 +324,10 @@ public class MapUI : MonoBehaviour
 
         foreach (Tilemap tilemap in tilemaps)
         {
-            Color32 color = TileColorOf(tilemap);
+            // 지형은 방의 스테이지에 따라 색이 달라지므로 방을 찾은 뒤에 결정한다.
+            // 나머지 분류는 타일맵마다 고정이라 여기서 한 번만 구한다.
+            TileCategory category = CategoryOf(tilemap);
+            Color32 categoryColor = TileColorOf(category);
 
             foreach (Vector3Int position in tilemap.cellBounds.allPositionsWithin)
             {
@@ -331,6 +341,8 @@ public class MapUI : MonoBehaviour
 
                 Room room;
                 if (!byCoordinate.TryGetValue(new Vector2Int(coordX, coordY), out room)) continue;
+
+                Color32 color = category == TileCategory.Ground ? groundColors[room] : categoryColor;
 
                 // 픽셀 시작점은 타일 중심이 아니라 좌하단 코너로 잡아야 한다.
                 // 중심(x.5)을 쓰면 pixelsPerTile이 2 이상일 때 마지막 타일이 텍스처 밖으로 반 칸 넘친다.
@@ -512,23 +524,34 @@ public class MapUI : MonoBehaviour
             case TileCategory.Ground: return 0;
             case TileCategory.Wire: return 1;
             case TileCategory.Passable: return 2;
-            case TileCategory.Obstacle: return 3;
+            case TileCategory.BlockZone: return 3;
+            case TileCategory.Obstacle: return 4;
         }
         return 1;
     }
 
-    private Color32 TileColorOf(Tilemap tilemap)
+    private Color32 TileColorOf(TileCategory category)
     {
-        switch (CategoryOf(tilemap))
+        switch (category)
         {
             case TileCategory.Obstacle: return obstacleTileColor;
             case TileCategory.Passable: return passableTileColor;
             case TileCategory.Wire: return wireTileColor;
+            case TileCategory.BlockZone: return blockZoneTileColor;
         }
         return groundTileColor;
     }
 
-    private enum TileCategory { Ground, Obstacle, Passable, Wire }
+    // 지형 색은 방이 참조하는 StageData가 소유한다.
+    // 스테이지가 비어 있는 방만 기본 색으로 떨어진다.
+    private Color32 GroundColorOf(Room room)
+    {
+        if (room == null || room.Stage == null) return groundTileColor;
+
+        return room.Stage.MinimapGroundColor;
+    }
+
+    private enum TileCategory { Ground, Obstacle, Passable, Wire, BlockZone }
 
     private TileCategory CategoryOf(Tilemap tilemap)
     {
@@ -536,6 +559,7 @@ public class MapUI : MonoBehaviour
 
         if (layer == "Obstacle") return TileCategory.Obstacle;
         if (layer == "PassableGround") return TileCategory.Passable;
+        if (layer == "BlockZone") return TileCategory.BlockZone;
         if (layer == "Ground") return TileCategory.Ground;
 
         // 레이어가 지정되지 않은 타일맵은 이름으로 추정
@@ -543,6 +567,7 @@ public class MapUI : MonoBehaviour
         if (name.Contains("Obstacle")) return TileCategory.Obstacle;
         if (name.Contains("Passable")) return TileCategory.Passable;
         if (name.Contains("Wire")) return TileCategory.Wire;
+        if (name.Contains("BlockZone")) return TileCategory.BlockZone;
 
         return TileCategory.Ground;
     }
