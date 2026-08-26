@@ -77,6 +77,10 @@ public class MapUI : MonoBehaviour
     [Tooltip("이 픽셀 이상 끌면 클릭이 아니라 드래그로 본다")]
     [SerializeField] private float dragThreshold = 6f;
 
+    [Header("디버그")]
+    [Tooltip("F1로 모든 방을 방문 처리한다. 빌드에 넣고 싶지 않으면 끈다")]
+    [SerializeField] private bool enableDebugReveal = true;
+
     private readonly Dictionary<Room, Image> cells = new Dictionary<Room, Image>();
     private InputActions inputActions;
 
@@ -114,12 +118,14 @@ public class MapUI : MonoBehaviour
         inputActions.Enable();
         inputActions.UI.Map.performed += OnToggleMap;
         inputActions.UI.Interact.performed += OnInteract;
+        inputActions.UI.DebugRevealMap.performed += OnDebugRevealMap;
     }
 
     private void OnDisable()
     {
         inputActions.UI.Map.performed -= OnToggleMap;
         inputActions.UI.Interact.performed -= OnInteract;
+        inputActions.UI.DebugRevealMap.performed -= OnDebugRevealMap;
         inputActions.Disable();
     }
 
@@ -601,6 +607,33 @@ public class MapUI : MonoBehaviour
         // Travel 모드에서는 출발 차원문이 있는 방을 중앙에 둔다
         ResetView(origin != null && origin.Room != null ? origin.Room : currentRoom);
         Refresh();
+    }
+
+    // 디버그: 모든 방을 방문 처리한다. 되돌리는 기능은 없다(Room.IsVisited는 한 방향).
+    private void OnDebugRevealMap(InputAction.CallbackContext context)
+    {
+        if (!enableDebugReveal) return;
+
+        RevealAllRooms();
+    }
+
+    public void RevealAllRooms()
+    {
+        int revealed = 0;
+
+        // cells에 없는 방까지 포함하도록 씬에서 다시 훑는다
+        foreach (Room room in FindObjectsByType<Room>(FindObjectsInactive.Include))
+        {
+            if (room.IsVisited) continue;
+
+            room.MarkVisited();
+            revealed++;
+        }
+
+        // 닫혀 있어도 셀/아이콘 상태를 맞춰둔다. 다음에 열 때 바로 반영된다.
+        Refresh();
+
+        Debug.Log("[디버그] 방 " + revealed + "개를 새로 방문 처리했습니다. (총 " + cells.Count + "개 셀)");
     }
 
     private void Close()

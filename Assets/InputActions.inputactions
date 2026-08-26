@@ -190,6 +190,16 @@
                     "interactions": "",
                     "initialStateCheck": false,
                     "priority": 0
+                },
+                {
+                    "name": "DebugRevealMap",
+                    "type": "Button",
+                    "id": "8fd652d8-176d-457b-ac52-148e90e59636",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
                 }
             ],
             "bindings": [
@@ -212,6 +222,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "Interact",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "fb1152e9-0965-40d3-93e5-d539ae9b2779",
+                    "path": "<Keyboard>/f1",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "DebugRevealMap",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
