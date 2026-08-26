@@ -14,6 +14,10 @@ public class KeyDoor : MonoBehaviour
     [Header("전부 열렸을 때 남아있는 문의 스케일")]
     [SerializeField] private float openScale = 0.3f;
 
+    [Header("사운드")]
+    [Tooltip("문이 움직이는 동안만 재생된다. LoopSound의 playOnEnable은 꺼두어야 한다")]
+    [SerializeField] private LoopSound moveSound;
+
     private Vector3 originScale;
     private Tween scaleTween;
 
@@ -44,6 +48,7 @@ public class KeyDoor : MonoBehaviour
     public void SetOpen(bool open, bool instant = false)
     {
         scaleTween?.Kill();
+        StopMoveSound();        // 이전 이동 소리를 남기지 않는다
 
         float currentScaleY = transform.localScale.y;
         float targetScaleY = open ? openScale : originScale.y;
@@ -68,8 +73,21 @@ public class KeyDoor : MonoBehaviour
             return;
         }
 
+        PlayMoveSound();
+
         scaleTween = transform
             .DOScaleY(targetScaleY, duration)
-            .SetEase(animEase);
+            .SetEase(animEase)
+            .OnComplete(StopMoveSound);
+    }
+
+    private void PlayMoveSound()
+    {
+        if (moveSound != null) moveSound.Play();
+    }
+
+    private void StopMoveSound()
+    {
+        if (moveSound != null) moveSound.Stop();
     }
 }

@@ -36,6 +36,9 @@ public class RoomCameraTrigger : MonoBehaviour
             // 같은 스테이지 안에서 방을 넘나들어도 곡이 끊기지 않는다.
             if (room != null && room.Stage != null)
                 AudioManager.PlayBgm(room.Stage.Bgm);
+
+            // 방이 바뀌었으니 재생 중인 루프 사운드들이 볼륨을 다시 계산해야 한다
+            AudioManager.NotifyPlayerRoomChanged();
         }
     }
 

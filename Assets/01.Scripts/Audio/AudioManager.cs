@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -6,7 +7,8 @@ using DG.Tweening;
 // 오디오 소유 규칙:
 //   일회성 효과음  -> 이 매니저의 풀. 재생 중에 오브젝트가 파괴돼도 소리가 끊기지 않는다.
 //                     (Key.Consume과 MarkingManager의 블럭은 Destroy되므로 자기 AudioSource로는 안 된다)
-//   지속 루프      -> 오브젝트가 자기 AudioSource를 갖는다. AmbientLoopSound 참고.
+//   멈출 수 있는 소리 -> 오브젝트가 자기 AudioSource를 갖는다. LoopSound 참고.
+//                      (풀은 재생 중인 소리로 돌아갈 손잡이가 없어서 Stop을 지원할 수 없다)
 //   BGM            -> 이 매니저의 A/B 소스 크로스페이드. 곡은 StageData가 소유한다.
 //
 // 감쇠 방식:
@@ -41,6 +43,16 @@ public class AudioManager : MonoBehaviour
     private AudioClip currentBgmClip;
 
     public AudioMixerGroup SfxGroup => sfxGroup;
+
+    // 플레이어가 방을 옮겼을 때 발생. LoopSound가 즉시 볼륨을 다시 계산한다.
+    // 폴링으로 확인하면 방에 들어간 뒤 최대 검사주기만큼 늦게 반응한다.
+    public event Action PlayerRoomChanged;
+
+    public static void NotifyPlayerRoomChanged()
+    {
+        if (Instance == null) return;
+        Instance.PlayerRoomChanged?.Invoke();
+    }
 
     private void Awake()
     {
@@ -133,7 +145,7 @@ public class AudioManager : MonoBehaviour
         return soundRoom != playerRoom;
     }
 
-    // 지속 루프(AmbientLoopSound)가 자기 볼륨을 정할 때 쓴다
+    // LoopSound가 자기 볼륨을 정할 때 쓴다
     public float RoomVolumeFor(SoundData sound, Vector3 position)
     {
         if (sound == null) return 0f;
