@@ -22,6 +22,11 @@ public class MarkingManager : MonoBehaviour
     [SerializeField] private Vector2 blockTopSize = new Vector2(1f, 0.1f); // 블럭 윗면 감지 박스 크기
     [SerializeField] private float topCheckOffset = 0.5f;   // 블럭 중심에서 윗면까지 거리
 
+    [Header("사운드")]
+    [SerializeField] private SoundData markSound;
+    [SerializeField] private SoundData blockSpawnSound;
+    [SerializeField] private SoundData blockDestroySound;
+
     private readonly List<Vector3> markPositions = new List<Vector3>();
     private readonly List<GameObject> markerObjects = new List<GameObject>();
 
@@ -211,6 +216,7 @@ public class MarkingManager : MonoBehaviour
     {
         if (activeBlock == null) return;
 
+        AudioManager.Instance.Play(blockDestroySound, activeBlock.transform.position);
         Destroy(activeBlock);
         activeBlock = null;
     }
@@ -269,10 +275,6 @@ public class MarkingManager : MonoBehaviour
     {
         maxMarkingCount++;
     }
-
-    [Header("사운드")]
-    [SerializeField] private SoundData markSound;
-    [SerializeField] private SoundData blockSpawnSound;
 
     [Header("기즈모 미리보기")]
     [SerializeField] private bool previewTopCheck = true;

@@ -34,6 +34,17 @@ public class Room : MonoBehaviour
         shadowSpawnPoint = GetComponentInChildren<ShadowSpawnPoint>().transform;
     }
 
+    // 월드 좌표가 어느 방 칸에 속하는지. Room의 Transform이 방 중앙이므로
+    // 방 중앙 X = (coord.x - 1) * 32, Y = coord.y * 18 을 역산한다.
+    // MapUI와 AudioManager가 같은 판정을 써야 하므로 여기서 한 번만 정의한다.
+    public static Vector2Int WorldToCoordinate(Vector3 world)
+    {
+        int x = Mathf.FloorToInt((world.x + Width * 0.5f) / Width) + 1;
+        int y = Mathf.FloorToInt((world.y + Height * 0.5f) / Height);
+
+        return new Vector2Int(x, y);
+    }
+
     public void MarkVisited()
     {
         IsVisited = true;

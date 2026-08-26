@@ -339,12 +339,8 @@ public class MapUI : MonoBehaviour
 
                 Vector3 world = tilemap.GetCellCenterWorld(position);
 
-                // Room의 Transform은 방의 중앙이다. 방 중앙 X = (coord.x - 1) * 32, Y = coord.y * 18
-                int coordX = Mathf.FloorToInt((world.x + Room.Width * 0.5f) / Room.Width) + 1;
-                int coordY = Mathf.FloorToInt((world.y + Room.Height * 0.5f) / Room.Height);
-
                 Room room;
-                if (!byCoordinate.TryGetValue(new Vector2Int(coordX, coordY), out room)) continue;
+                if (!byCoordinate.TryGetValue(Room.WorldToCoordinate(world), out room)) continue;
 
                 Color32 color = category == TileCategory.Ground ? groundColors[room] : categoryColor;
 

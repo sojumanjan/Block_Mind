@@ -10,13 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 10415cf386d73a14bb822e09f774b31f, type: 3}
-  m_Name: SFX_Marking
+  m_Name: SFX_BlockSpawn
   m_EditorClassIdentifier: Assembly-CSharp::SoundData
   clips:
-  - {fileID: 8300000, guid: 73dc3be5b177b7d4d9578e52ba43998b, type: 3}
-  - {fileID: 8300000, guid: 60d4fdb63cbe9d44c94dfe60956de289, type: 3}
-  - {fileID: 8300000, guid: b845cd3b77923fe4da5e6be97baf1d28, type: 3}
+  - {fileID: 8300000, guid: 7d0abce2f3591a14aac336a1e2fe6492, type: 3}
   volume: 1
   pitchRange: {x: 0.95, y: 1.05}
-  muffleOutsideRoom: 0
+  muffleOutsideRoom: 1
   outsideRoomVolume: 0.35

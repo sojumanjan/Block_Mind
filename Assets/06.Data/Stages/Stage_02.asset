@@ -14,3 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StageData
   displayName: "\uC2A4\uD14C\uC774\uC9C0 2"
   minimapGroundColor: {r: 0.9960785, g: 0.4666667, b: 0.3019608, a: 1}
+  bgm: {fileID: 8300000, guid: 2c20e5730f326cb48af91c2160447806, type: 3}

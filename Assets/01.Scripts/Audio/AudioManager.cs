@@ -7,8 +7,12 @@ using DG.Tweening;
 //   일회성 효과음  -> 이 매니저의 풀. 재생 중에 오브젝트가 파괴돼도 소리가 끊기지 않는다.
 //                     (Key.Consume과 MarkingManager의 블럭은 Destroy되므로 자기 AudioSource로는 안 된다)
 //   지속 루프      -> 오브젝트가 자기 AudioSource를 갖는다. AmbientLoopSound 참고.
-//   UI 효과음      -> 이 매니저의 2D 전용 소스.
 //   BGM            -> 이 매니저의 A/B 소스 크로스페이드. 곡은 StageData가 소유한다.
+//
+// 감쇠 방식:
+//   Unity의 3D 롤오프를 쓰지 않는다. 거리에 비례해 줄어들면 1칸 옆과 10칸 옆이 달라지기 때문이다.
+//   대신 "같은 방 / 다른 방" 2단계로만 갈린다. SoundData.muffleOutsideRoom 참고.
+//   모든 소스는 2D(spatialBlend 0)이고 볼륨만 조절한다.
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance;
@@ -16,16 +20,12 @@ public class AudioManager : MonoBehaviour
     [Header("믹서 그룹 (비워도 동작하지만 볼륨 조절 UI를 붙이려면 필요)")]
     [SerializeField] private AudioMixerGroup sfxGroup;
     [SerializeField] private AudioMixerGroup bgmGroup;
+    [Tooltip("다른 방 소리를 보낼 그룹. Lowpass를 걸어두면 볼륨만 줄이는 것보다 '멀다'는 느낌이 산다. 비워두면 sfxGroup을 쓴다")]
+    [SerializeField] private AudioMixerGroup sfxMuffledGroup;
 
     [Header("효과음 풀")]
     [Tooltip("동시에 울릴 수 있는 효과음 개수. 넘치면 가장 오래 쓴 것을 재사용한다")]
     [SerializeField] private int poolSize = 12;
-
-    [Header("3D 감쇠 (방 하나가 32유닛)")]
-    [Tooltip("이 거리까지는 최대 음량")]
-    [SerializeField] private float minDistance = 6f;
-    [Tooltip("이 거리를 넘으면 들리지 않는다. 방 하나 폭보다 작게 두면 옆 방 소리가 새지 않는다")]
-    [SerializeField] private float maxDistance = 26f;
 
     [Header("BGM")]
     [SerializeField] private float bgmFadeDuration = 1.5f;
@@ -35,7 +35,6 @@ public class AudioManager : MonoBehaviour
     private readonly List<AudioSource> pool = new List<AudioSource>();
     private int nextPoolIndex;
 
-    private AudioSource uiSource;
     private AudioSource bgmA;
     private AudioSource bgmB;
     private AudioSource activeBgm;
@@ -50,28 +49,24 @@ public class AudioManager : MonoBehaviour
         BuildSources();
     }
 
-    // 오디오소스 풀링을 위한 공간 poolSize개만큼 생성. UI와 bgm은 각각 1, 2개
+    // 오디오소스 풀링을 위한 공간 poolSize개만큼 생성. bgm은 크로스페이드용으로 2개
     private void BuildSources()
     {
         for (int i = 0; i < poolSize; i++)
-            pool.Add(CreateSource("Sfx_" + i.ToString("00"), true));
+            pool.Add(CreateSource("Sfx_" + i.ToString("00")));
 
-        uiSource = CreateSource("UI", false);
-        bgmA = CreateSource("Bgm_A", false);
-        bgmB = CreateSource("Bgm_B", false);
+        bgmA = CreateSource("Bgm_A");
+        bgmB = CreateSource("Bgm_B");
     }
 
-    private AudioSource CreateSource(string sourceName, bool spatial)
+    private AudioSource CreateSource(string sourceName)
     {
         var go = new GameObject(sourceName);
         go.transform.SetParent(transform, false);
 
         AudioSource source = go.AddComponent<AudioSource>();
         source.playOnAwake = false;
-        source.spatialBlend = spatial ? 1f : 0f;
-        source.rolloffMode = AudioRolloffMode.Linear;   // 방 단위로 자르기 쉬운 감쇠
-        source.minDistance = minDistance;
-        source.maxDistance = maxDistance;
+        source.spatialBlend = 0f;   // 전부 2D. 감쇠는 볼륨 계산으로 처리한다
 
         return source;
     }
@@ -79,12 +74,15 @@ public class AudioManager : MonoBehaviour
     // ---------------------------------------------------------------- 효과음
 
     // 호출부에서 null 검사를 반복하지 않도록 static 래퍼를 둔다
+
+    // 위치가 있는 효과음. SoundData가 muffleOutsideRoom이면 다른 방에서 난 소리는 작게 들린다.
     public static void PlaySfx(SoundData sound, Vector3 position)
     {
         if (Instance == null) return;
         Instance.Play(sound, position);
     }
 
+    // 위치 개념이 없는 효과음(UI 등). 항상 원래 볼륨으로 들린다.
     public static void PlayUiSfx(SoundData sound)
     {
         if (Instance == null) return;
@@ -95,37 +93,53 @@ public class AudioManager : MonoBehaviour
     {
         if (sound == null || !sound.HasClip) return;
 
-        // spatial이 꺼진 사운드는 위치를 무시하고 2D로 재생한다
-        if (!sound.Spatial)
-        {
-            PlayUI(sound);
-            return;
-        }
+        bool outsideRoom = sound.MuffleOutsideRoom && IsOutsidePlayerRoom(position);
+        float volume = outsideRoom ? sound.Volume * sound.OutsideRoomVolume : sound.Volume;
 
-        AudioSource source = TakeFromPool();
-        if (source == null) return;
-
-        source.transform.position = position;
-        Configure(source, sound, true);
-        source.Play();
+        PlayInternal(sound, volume, outsideRoom);
     }
 
     public void PlayUI(SoundData sound)
     {
-        if (sound == null || !sound.HasClip || uiSource == null) return;
+        if (sound == null || !sound.HasClip) return;
 
-        Configure(uiSource, sound, false);
-        uiSource.Play();
+        PlayInternal(sound, sound.Volume, false);
     }
 
-    private void Configure(AudioSource source, SoundData sound, bool spatial)
+    // UI든 효과음이든 같은 풀을 쓴다.
+    // 단일 소스를 공유하면 두 소리가 겹칠 때 앞의 것이 잘린다.
+    private void PlayInternal(SoundData sound, float volume, bool muffled)
     {
+        AudioSource source = TakeFromPool();
+        if (source == null) return;
+
         source.clip = sound.PickClip();
-        source.volume = sound.Volume;
+        source.volume = volume;
         source.pitch = sound.PickPitch();
-        source.spatialBlend = spatial ? 1f : 0f;
         source.loop = false;
-        source.outputAudioMixerGroup = sfxGroup;
+        source.outputAudioMixerGroup = muffled && sfxMuffledGroup != null ? sfxMuffledGroup : sfxGroup;
+        source.Play();
+    }
+
+    // 소리가 난 방과 플레이어가 있는 방이 다른가.
+    // 거리를 재지 않으므로 몇 칸 떨어졌는지는 결과에 영향이 없다.
+    public bool IsOutsidePlayerRoom(Vector3 position)
+    {
+        if (PlayerController.Instance == null) return false;
+
+        Vector2Int soundRoom = Room.WorldToCoordinate(position);
+        Vector2Int playerRoom = Room.WorldToCoordinate(PlayerController.Instance.transform.position);
+
+        return soundRoom != playerRoom;
+    }
+
+    // 지속 루프(AmbientLoopSound)가 자기 볼륨을 정할 때 쓴다
+    public float RoomVolumeFor(SoundData sound, Vector3 position)
+    {
+        if (sound == null) return 0f;
+        if (!sound.MuffleOutsideRoom) return sound.Volume;
+
+        return IsOutsidePlayerRoom(position) ? sound.Volume * sound.OutsideRoomVolume : sound.Volume;
     }
 
     // 비어 있는 소스를 먼저 찾고, 전부 재생 중이면 라운드로빈으로 가장 오래 쓴 것을 빼앗는다

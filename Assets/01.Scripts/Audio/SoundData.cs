@@ -15,12 +15,20 @@ public class SoundData : ScriptableObject
     [Tooltip("재생마다 이 범위에서 피치를 무작위로 고른다. x와 y를 같게 두면 고정")]
     [SerializeField] private Vector2 pitchRange = new Vector2(0.95f, 1.05f);
 
-    [Tooltip("켜면 3D로 재생되어 멀어지면 작아진다. UI나 전역 효과음은 꺼둔다")]
-    [SerializeField] private bool spatial = true;
+    [Header("방 단위 감쇠")]
+    [Tooltip("켜면 소리가 난 방과 플레이어가 있는 방이 다를 때 작게 들린다. " +
+             "거리에 비례하지 않으므로 1칸 옆이든 10칸 옆이든 같은 크기다")]
+    [SerializeField] private bool muffleOutsideRoom = false;
 
-    public bool Spatial => spatial;
+    [Tooltip("다른 방에서 났을 때의 볼륨 배율")]
+    [Range(0f, 1f)]
+    [SerializeField] private float outsideRoomVolume = 0.35f;
 
     public float Volume => volume;
+
+    public bool MuffleOutsideRoom => muffleOutsideRoom;
+
+    public float OutsideRoomVolume => outsideRoomVolume;
 
     public bool HasClip
     {

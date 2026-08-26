@@ -52836,8 +52836,8 @@ MonoBehaviour:
     m_Bits: 8
   blockTopSize: {x: 1, y: 0.02}
   topCheckOffset: 1
-  markSound: {fileID: 0}
-  blockSpawnSound: {fileID: 0}
+  markSound: {fileID: 11400000, guid: a8519c53c2e4b954490e42d710bf3de0, type: 2}
+  blockSpawnSound: {fileID: 11400000, guid: bd199ceee46bb434a9b0fee22ee4ce5e, type: 2}
   previewTopCheck: 0
 --- !u!114 &350332777
 MonoBehaviour:
@@ -290994,11 +290994,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
   sfxGroup: {fileID: -3375468832369504982, guid: 83235fa8194d47744a318a256cdaf802, type: 2}
   bgmGroup: {fileID: 7223366242802081946, guid: 83235fa8194d47744a318a256cdaf802, type: 2}
+  sfxMuffledGroup: {fileID: 1907416424750723751, guid: 83235fa8194d47744a318a256cdaf802, type: 2}
   poolSize: 12
-  minDistance: 6
-  maxDistance: 26
   bgmFadeDuration: 1.5
-  bgmVolume: 0.7
+  bgmVolume: 0.35
 --- !u!1001 &2082615895
 PrefabInstance:
   m_ObjectHideFlags: 0
