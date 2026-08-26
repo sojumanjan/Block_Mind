@@ -18,6 +18,9 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Vector2 jumpBoxSize = new Vector2(1.5f, 0.2f);
     [SerializeField] private float jumpBoxYOffset = 0.9f;
 
+    [Header("사운드")]
+    [SerializeField] private SoundData jumpSound;
+
     private void Awake()
     {
         if (Instance == null) Instance = this;
@@ -73,6 +76,8 @@ public class PlayerController : MonoBehaviour
             rigid.linearVelocity = new Vector2(rigid.linearVelocity.x, 0f);
             rigid.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
             elaspedTime = -1f;
+
+            AudioManager.PlaySfx(jumpSound, transform.position);
         }
 
         ClampFallSpeed();

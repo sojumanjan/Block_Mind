@@ -15,7 +15,12 @@ public class StageData : ScriptableObject
     [Tooltip("이 스테이지 방들의 미니맵 지형 색")]
     [SerializeField] private Color minimapGroundColor = new Color(0.80f, 0.82f, 0.88f, 1f);
 
+    [Tooltip("이 스테이지에서 재생할 BGM. 비우면 방 진입 시 BGM을 바꾸지 않는다")]
+    [SerializeField] private AudioClip bgm;
+
     public string DisplayName => string.IsNullOrEmpty(displayName) ? name : displayName;
 
     public Color MinimapGroundColor => minimapGroundColor;
+
+    public AudioClip Bgm => bgm;
 }

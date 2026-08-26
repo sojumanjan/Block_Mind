@@ -31,6 +31,11 @@ public class RoomCameraTrigger : MonoBehaviour
             // 지도에 현재 방을 알림 (방문 처리도 MapUI에서 함께)
             if (MapUI.Instance != null)
                 MapUI.Instance.SetCurrentRoom(room);
+
+            // 스테이지 BGM 전환. 같은 곡이면 AudioManager가 무시하므로
+            // 같은 스테이지 안에서 방을 넘나들어도 곡이 끊기지 않는다.
+            if (room != null && room.Stage != null)
+                AudioManager.PlayBgm(room.Stage.Bgm);
         }
     }
 

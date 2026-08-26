@@ -105,6 +105,8 @@ public class MarkingManager : MonoBehaviour
             GameObject marker = Instantiate(markerPrefab, pos, Quaternion.identity);
             markerObjects.Add(marker);
         }
+
+        AudioManager.PlaySfx(markSound, pos);
     }
 
     // 우클릭 시 마킹이 하나라도 되어있다면 블럭 실체화를 시작함.
@@ -159,6 +161,8 @@ public class MarkingManager : MonoBehaviour
         isMoving = true;
 
         activeBlock = Instantiate(blockPrefab, markPositions[0], Quaternion.identity);
+
+        AudioManager.PlaySfx(blockSpawnSound, markPositions[0]);
 
         yield return new WaitForSeconds(waitTime);
 
@@ -265,6 +269,10 @@ public class MarkingManager : MonoBehaviour
     {
         maxMarkingCount++;
     }
+
+    [Header("사운드")]
+    [SerializeField] private SoundData markSound;
+    [SerializeField] private SoundData blockSpawnSound;
 
     [Header("기즈모 미리보기")]
     [SerializeField] private bool previewTopCheck = true;

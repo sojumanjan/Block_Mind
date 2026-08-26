@@ -80,6 +80,10 @@ public class MapUI : MonoBehaviour
     [Tooltip("이 픽셀 이상 끌면 클릭이 아니라 드래그로 본다")]
     [SerializeField] private float dragThreshold = 6f;
 
+    [Header("사운드")]
+    [SerializeField] private SoundData mapOpenSound;
+    [SerializeField] private SoundData portalTravelSound;
+
     [Header("디버그")]
     [Tooltip("F1로 모든 방을 방문 처리한다. 빌드에 넣고 싶지 않으면 끈다")]
     [SerializeField] private bool enableDebugReveal = true;
@@ -629,6 +633,8 @@ public class MapUI : MonoBehaviour
 
         panel.SetActive(true);
 
+        AudioManager.PlayUiSfx(mapOpenSound);
+
         // Travel 모드에서는 출발 차원문이 있는 방을 중앙에 둔다
         ResetView(origin != null && origin.Room != null ? origin.Room : currentRoom);
         Refresh();
@@ -863,6 +869,8 @@ public class MapUI : MonoBehaviour
             body.position = target.ArrivalPosition;
             body.linearVelocity = Vector2.zero;
         }
+
+        AudioManager.PlaySfx(portalTravelSound, target.ArrivalPosition);
 
         // 맵 반대편으로 날아간 블럭과 경로는 의미가 없으므로 정리한다
         if (MarkingManager.Instance != null)
