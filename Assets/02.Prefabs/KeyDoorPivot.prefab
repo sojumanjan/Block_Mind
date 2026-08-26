@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 5514633748869828541}
   - component: {fileID: 1955781276783061620}
   - component: {fileID: 8513754358041476773}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Square
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -170,7 +170,7 @@ GameObject:
   - component: {fileID: 1480646391220550394}
   - component: {fileID: 8920513541603284371}
   - component: {fileID: 2821763927686460569}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Keyhole
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -275,9 +275,9 @@ GameObject:
   m_Component:
   - component: {fileID: 463156214480297326}
   - component: {fileID: 3348073978919626871}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: KeyDoorPivot
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -316,3 +316,4 @@ MonoBehaviour:
   animEase: 1
   baseHeight: 1
   openScale: 0.3
+  moveSound: {fileID: 0}
