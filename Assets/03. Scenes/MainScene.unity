@@ -52838,6 +52838,7 @@ MonoBehaviour:
   topCheckOffset: 1
   markSound: {fileID: 11400000, guid: a8519c53c2e4b954490e42d710bf3de0, type: 2}
   blockSpawnSound: {fileID: 11400000, guid: bd199ceee46bb434a9b0fee22ee4ce5e, type: 2}
+  blockDestroySound: {fileID: 11400000, guid: fc6a5d32efca56542bb0b3a0302c726a, type: 2}
   previewTopCheck: 0
 --- !u!114 &350332777
 MonoBehaviour:
