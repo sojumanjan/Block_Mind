@@ -879,7 +879,7 @@ public class MapUI : MonoBehaviour
             body.linearVelocity = Vector2.zero;
         }
 
-        AudioManager.PlaySfx(portalOutSound, target.ArrivalPosition);
+        AudioManager.Instance.PlayUI(portalOutSound);
 
         // 맵 반대편으로 날아간 블럭과 경로는 의미가 없으므로 정리한다
         if (MarkingManager.Instance != null)

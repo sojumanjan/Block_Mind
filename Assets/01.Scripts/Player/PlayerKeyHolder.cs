@@ -5,6 +5,9 @@ public class PlayerKeyHolder : MonoBehaviour
     public static PlayerKeyHolder Instance;
     private Key heldKey;
 
+    [Header("사운드")]
+    [SerializeField] SoundData getKeySound;
+
     public bool HasKey => heldKey != null;
 
     private void Awake()
@@ -28,6 +31,7 @@ public class PlayerKeyHolder : MonoBehaviour
     public void AddKey(Key key)
     {
         heldKey = key;
+        AudioManager.Instance.Play(getKeySound, key.transform.position);
     }
 
     public void UseKey()

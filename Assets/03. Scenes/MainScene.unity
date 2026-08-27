@@ -131497,11 +131497,13 @@ MonoBehaviour:
   showPlayerMarker: 1
   portalIconPrefab: {fileID: 5976640031261667571, guid: 07f086987952b6449abdb0034773144f, type: 3}
   portalIconSize: {x: 12, y: 12}
+  teleportTime: 1
   portalIconColor: {r: 1, g: 1, b: 1, a: 1}
   dragThreshold: 6
   mapOpenSound: {fileID: 11400000, guid: af4bb50ca8eb615459c06d0e00224499, type: 2}
   mapCloseSound: {fileID: 11400000, guid: 76dd5f6e439f2524d8a06c84a35529f7, type: 2}
-  portalTravelSound: {fileID: 0}
+  portalInSound: {fileID: 11400000, guid: b625b1e2c78066648b642ad66cbd522c, type: 2}
+  portalOutSound: {fileID: 11400000, guid: eda63cb3d10fcd04e88af13a89c736a7, type: 2}
   enableDebugReveal: 1
 --- !u!114 &907997713
 MonoBehaviour:
@@ -231982,7 +231984,7 @@ Transform:
   m_GameObject: {fileID: 1783843194}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 338.44, y: -48.33, z: 0}
+  m_LocalPosition: {x: 353.4, y: 4.6, z: 0}
   m_LocalScale: {x: 1.4, y: 1.4, z: 1.9}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -232107,6 +232109,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 792ae66489d7f134fb44b73416ba7793, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerKeyHolder
+  getKeySound: {fileID: 11400000, guid: a486b169571c3814a9e1d5a0583625fb, type: 2}
 --- !u!1 &1792364869
 GameObject:
   m_ObjectHideFlags: 0
