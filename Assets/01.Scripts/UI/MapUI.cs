@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
@@ -75,6 +77,7 @@ public class MapUI : MonoBehaviour
     [Tooltip("차원문 아이콘 프리팹. Image + Button이 붙어 있어야 한다")]
     [SerializeField] private RectTransform portalIconPrefab;
     [SerializeField] private Vector2 portalIconSize = new Vector2(12f, 12f);
+    [SerializeField] private float teleportTime = 1f;
     [Tooltip("차원문 아이콘 색. 흰색이면 스프라이트 원본 색이 그대로 나온다. 모드와 무관하게 항상 같은 색을 쓴다")]
     [SerializeField] private Color portalIconColor = Color.white;
     [Tooltip("이 픽셀 이상 끌면 클릭이 아니라 드래그로 본다")]
@@ -82,7 +85,9 @@ public class MapUI : MonoBehaviour
 
     [Header("사운드")]
     [SerializeField] private SoundData mapOpenSound;
-    [SerializeField] private SoundData portalTravelSound;
+    [SerializeField] private SoundData mapCloseSound;
+    [SerializeField] private SoundData portalInSound;
+    [SerializeField] private SoundData portalOutSound;
 
     [Header("디버그")]
     [Tooltip("F1로 모든 방을 방문 처리한다. 빌드에 넣고 싶지 않으면 끈다")]
@@ -667,6 +672,7 @@ public class MapUI : MonoBehaviour
     {
         panel.SetActive(false);
 
+        AudioManager.PlayUiSfx(mapCloseSound);
         mode = MapMode.View;
         originPortal = null;
         isDragging = false;
@@ -848,12 +854,19 @@ public class MapUI : MonoBehaviour
         if (mode != MapMode.Travel) return;     // 일반 지도(M)에서는 선택 불가
         if (target == null || target == originPortal) return;
 
-        TravelTo(target);
+        if (PlayerController.Instance == null) return;
+
+        StartCoroutine(TravelTo(target));
     }
 
-    private void TravelTo(Portal target)
+    IEnumerator TravelTo(Portal target)
     {
-        if (PlayerController.Instance == null) return;
+
+        // 다른 포탈로 순간이동을 클릭한 순간
+        AudioManager.Instance.PlayUI(portalInSound);
+        // 여기에 포탈에 빨려들어가는 애니메이션  teleportTime동안 실행
+
+        yield return new WaitForSeconds(teleportTime);
 
         Transform player = PlayerController.Instance.transform;
         player.position = target.ArrivalPosition;
@@ -866,7 +879,7 @@ public class MapUI : MonoBehaviour
             body.linearVelocity = Vector2.zero;
         }
 
-        AudioManager.PlaySfx(portalTravelSound, target.ArrivalPosition);
+        AudioManager.PlaySfx(portalOutSound, target.ArrivalPosition);
 
         // 맵 반대편으로 날아간 블럭과 경로는 의미가 없으므로 정리한다
         if (MarkingManager.Instance != null)
