@@ -25,7 +25,7 @@ public class MarkingManager : MonoBehaviour
     [Header("사운드")]
     [SerializeField] private SoundData markSound;
     [SerializeField] private SoundData blockSpawnSound;
-    [SerializeField] private SoundData blockDestroySound;
+    [SerializeField] private SoundData blockStartMovingSound;
 
     private readonly List<Vector3> markPositions = new List<Vector3>();
     private readonly List<GameObject> markerObjects = new List<GameObject>();
@@ -167,9 +167,12 @@ public class MarkingManager : MonoBehaviour
 
         activeBlock = Instantiate(blockPrefab, markPositions[0], Quaternion.identity);
 
+
         AudioManager.PlaySfx(blockSpawnSound, markPositions[0]);
 
         yield return new WaitForSeconds(waitTime);
+
+        AudioManager.PlaySfx(blockStartMovingSound, activeBlock.transform.position);
 
         for (int i = 1; i < markPositions.Count; i++)
         {
@@ -190,6 +193,8 @@ public class MarkingManager : MonoBehaviour
 
             if (activeBlock == null) break;
 
+            if (i == markPositions.Count - 1) AudioManager.PlaySfx(blockSpawnSound, markPositions[0]);
+
             yield return new WaitForSeconds(waitTime);
         }
 
@@ -199,6 +204,7 @@ public class MarkingManager : MonoBehaviour
     // 블럭 도착 -> 블럭 제거 -> 마킹 초기화 -> 쿨타임 -> 그림자 복귀
     private IEnumerator FinishSequence()
     {
+        AudioManager.PlaySfx(blockStartMovingSound, activeBlock.transform.position);
         DestroyActiveBlock();
         ClearMarks();
 
@@ -216,7 +222,6 @@ public class MarkingManager : MonoBehaviour
     {
         if (activeBlock == null) return;
 
-        AudioManager.Instance.Play(blockDestroySound, activeBlock.transform.position);
         Destroy(activeBlock);
         activeBlock = null;
     }

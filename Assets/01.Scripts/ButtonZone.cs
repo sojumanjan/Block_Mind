@@ -1,8 +1,12 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class ButtonZone : MonoBehaviour
 {
-    [SerializeField] private Door[] connectedDoors; // 연결된 문들 (인스펙터에서 드래그)
+    // Door, MovingDoor 등 ActivatableDevice를 상속한 것이면 무엇이든 여기에 넣는다.
+    // 예전 connectedDoors 필드에 넣어둔 연결은 FormerlySerializedAs로 그대로 이어받는다.
+    [FormerlySerializedAs("connectedDoors")]
+    [SerializeField] private ActivatableDevice[] connectedDevices;
 
     private int blockCount = 0; // 현재 이 Zone에 들어와 있는 블럭 개수
 
@@ -38,10 +42,10 @@ public class ButtonZone : MonoBehaviour
 
         sr.color = isActivated ? activeColor : inactiveColor;
 
-        foreach (Door door in connectedDoors)
+        foreach (ActivatableDevice device in connectedDevices)
         {
-            if (door != null)
-                door.SetOpen(isActivated);
+            if (device != null)
+                device.SetActivated(isActivated);
         }
     }
 }

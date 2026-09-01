@@ -1,7 +1,7 @@
 using UnityEngine;
 using DG.Tweening;
 
-public class Door : MonoBehaviour
+public class Door : ActivatableDevice
 {
     [Header("애니메이션 속도 (유닛/초)")]
     [SerializeField] private float openSpeed = 3f;   // 열릴 때 초당 몇 유닛 줄어드는지
@@ -33,6 +33,13 @@ public class Door : MonoBehaviour
     private void Awake()
     {
         originScale = transform.localScale;
+    }
+
+    // ButtonZone 등이 공통 타입으로 부르는 진입점.
+    // 문에는 "연다/닫는다"가 자연스러운 표현이라 SetOpen을 그대로 두고 여기서 연결한다.
+    public override void SetActivated(bool activated)
+    {
+        SetOpen(activated);
     }
 
     public void SetOpen(bool open)
