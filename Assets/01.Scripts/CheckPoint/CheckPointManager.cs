@@ -56,6 +56,17 @@ public class CheckpointManager : MonoBehaviour
         CheckPointActivate?.Invoke();
     }
 
+    // ESC 메뉴의 "체크포인트에서 재시작".
+    // CheckPointActivate는 event라 외부에서 Invoke할 수 없으므로 여기서 대신 쏜다.
+    // 구독자(열쇠/마킹/문)가 스스로 리셋하므로 여기서 개별 처리를 할 필요가 없다.
+    public void RestartFromCurrentCheckpoint()
+    {
+        CheckPointActivate?.Invoke();
+
+        if (PlayerLifeManager.Instance != null)
+            PlayerLifeManager.Instance.RespawnAtCheckpoint();
+    }
+
     public Checkpoint GetCheckPoint()
     {
         return currentActive;

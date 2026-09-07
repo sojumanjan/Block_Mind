@@ -668,7 +668,8 @@ public class MapUI : MonoBehaviour
         Debug.Log("[디버그] 방 " + revealed + "개를 새로 방문 처리했습니다. (총 " + cells.Count + "개 셀)");
     }
 
-    private void Close()
+    // ESC 메뉴가 "지도가 열려 있으면 지도부터 닫는다"를 하려면 외부에서 부를 수 있어야 한다
+    public void Close()
     {
         panel.SetActive(false);
 

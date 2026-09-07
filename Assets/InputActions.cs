@@ -286,6 +286,16 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""initialStateCheck"": false,
                     ""priority"": 0
+                },
+                {
+                    ""name"": ""Pause"",
+                    ""type"": ""Button"",
+                    ""id"": ""c7a2a74f-011e-40b5-847a-0ef77b1d24d9"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false,
+                    ""priority"": 0
                 }
             ],
             ""bindings"": [
@@ -321,6 +331,17 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
                     ""action"": ""DebugRevealMap"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f7567530-9945-4a15-85a0-19cfee30cf60"",
+                    ""path"": ""<Keyboard>/escape"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Pause"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -341,6 +362,7 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
         m_UI_Map = m_UI.FindAction("Map", throwIfNotFound: true);
         m_UI_Interact = m_UI.FindAction("Interact", throwIfNotFound: true);
         m_UI_DebugRevealMap = m_UI.FindAction("DebugRevealMap", throwIfNotFound: true);
+        m_UI_Pause = m_UI.FindAction("Pause", throwIfNotFound: true);
     }
 
     ~@InputActions()
@@ -651,6 +673,7 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
     private readonly InputAction m_UI_Map;
     private readonly InputAction m_UI_Interact;
     private readonly InputAction m_UI_DebugRevealMap;
+    private readonly InputAction m_UI_Pause;
     /// <summary>
     /// Provides access to input actions defined in input action map "UI".
     /// </summary>
@@ -674,6 +697,10 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "UI/DebugRevealMap".
         /// </summary>
         public InputAction @DebugRevealMap => m_Wrapper.m_UI_DebugRevealMap;
+        /// <summary>
+        /// Provides access to the underlying input action "UI/Pause".
+        /// </summary>
+        public InputAction @Pause => m_Wrapper.m_UI_Pause;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -709,6 +736,9 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
             @DebugRevealMap.started += instance.OnDebugRevealMap;
             @DebugRevealMap.performed += instance.OnDebugRevealMap;
             @DebugRevealMap.canceled += instance.OnDebugRevealMap;
+            @Pause.started += instance.OnPause;
+            @Pause.performed += instance.OnPause;
+            @Pause.canceled += instance.OnPause;
         }
 
         /// <summary>
@@ -729,6 +759,9 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
             @DebugRevealMap.started -= instance.OnDebugRevealMap;
             @DebugRevealMap.performed -= instance.OnDebugRevealMap;
             @DebugRevealMap.canceled -= instance.OnDebugRevealMap;
+            @Pause.started -= instance.OnPause;
+            @Pause.performed -= instance.OnPause;
+            @Pause.canceled -= instance.OnPause;
         }
 
         /// <summary>
@@ -841,5 +874,12 @@ public partial class @InputActions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnDebugRevealMap(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Pause" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnPause(InputAction.CallbackContext context);
     }
 }
