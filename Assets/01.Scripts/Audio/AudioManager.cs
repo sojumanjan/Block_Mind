@@ -69,6 +69,11 @@ public class AudioManager : MonoBehaviour
 
         bgmA = CreateSource("Bgm_A");
         bgmB = CreateSource("Bgm_B");
+
+        // 일시정지(AudioListener.pause) 중에도 BGM은 계속 흘러야 한다.
+        // 게임플레이 효과음과 LoopSound(레이저/차원문)는 그대로 멈춘다.
+        bgmA.ignoreListenerPause = true;
+        bgmB.ignoreListenerPause = true;
     }
 
     private AudioSource CreateSource(string sourceName)
@@ -108,19 +113,20 @@ public class AudioManager : MonoBehaviour
         bool outsideRoom = sound.MuffleOutsideRoom && IsOutsidePlayerRoom(position);
         float volume = outsideRoom ? sound.Volume * sound.OutsideRoomVolume : sound.Volume;
 
-        PlayInternal(sound, volume, outsideRoom);
+        PlayInternal(sound, volume, outsideRoom, false);
     }
 
     public void PlayUI(SoundData sound)
     {
         if (sound == null || !sound.HasClip) return;
 
-        PlayInternal(sound, sound.Volume, false);
+        // UI 소리는 일시정지 메뉴에서도 들려야 하므로 리스너 정지를 무시한다
+        PlayInternal(sound, sound.Volume, false, true);
     }
 
     // UI든 효과음이든 같은 풀을 쓴다.
     // 단일 소스를 공유하면 두 소리가 겹칠 때 앞의 것이 잘린다.
-    private void PlayInternal(SoundData sound, float volume, bool muffled)
+    private void PlayInternal(SoundData sound, float volume, bool muffled, bool ignoreListenerPause)
     {
         AudioSource source = TakeFromPool();
         if (source == null) return;
@@ -130,6 +136,11 @@ public class AudioManager : MonoBehaviour
         source.pitch = sound.PickPitch();
         source.loop = false;
         source.outputAudioMixerGroup = muffled && sfxMuffledGroup != null ? sfxMuffledGroup : sfxGroup;
+
+        // 풀은 UI와 게임플레이가 공유하므로 재생마다 반드시 다시 지정해야 한다.
+        // 안 그러면 앞서 UI 소리를 냈던 소스가 정지 중에도 게임플레이 소리를 낸다.
+        source.ignoreListenerPause = ignoreListenerPause;
+
         source.Play();
     }
 
