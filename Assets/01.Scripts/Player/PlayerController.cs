@@ -1,8 +1,7 @@
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : SingletonBehaviour<PlayerController>
 {
-    public static PlayerController Instance { get; private set; }
 
     Rigidbody2D rigid;
 
@@ -21,9 +20,10 @@ public class PlayerController : MonoBehaviour
     [Header("사운드")]
     [SerializeField] private SoundData jumpSound;
 
-    private void Awake()
+    protected override void Awake()
     {
-        if (Instance == null) Instance = this;
+        base.Awake();
+
         inputActions = new InputActions();
     }
 

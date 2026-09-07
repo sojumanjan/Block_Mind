@@ -15,9 +15,8 @@ using DG.Tweening;
 //   Unity의 3D 롤오프를 쓰지 않는다. 거리에 비례해 줄어들면 1칸 옆과 10칸 옆이 달라지기 때문이다.
 //   대신 "같은 방 / 다른 방" 2단계로만 갈린다. SoundData.muffleOutsideRoom 참고.
 //   모든 소스는 2D(spatialBlend 0)이고 볼륨만 조절한다.
-public class AudioManager : MonoBehaviour
+public class AudioManager : SingletonBehaviour<AudioManager>
 {
-    public static AudioManager Instance;
 
     [Header("믹서 그룹 (비워도 동작하지만 볼륨 조절 UI를 붙이려면 필요)")]
     [SerializeField] private AudioMixerGroup sfxGroup;
@@ -54,9 +53,9 @@ public class AudioManager : MonoBehaviour
         Instance.PlayerRoomChanged?.Invoke();
     }
 
-    private void Awake()
+    protected override void Awake()
     {
-        if (Instance == null) Instance = this;
+        base.Awake();
 
         BuildSources();
     }

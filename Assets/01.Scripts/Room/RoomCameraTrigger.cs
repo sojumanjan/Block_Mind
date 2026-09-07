@@ -1,14 +1,12 @@
 using System.Collections;
 using Unity.Cinemachine;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class RoomCameraTrigger : MonoBehaviour
 {
     [SerializeField] private CinemachineCamera roomCamera;
     [SerializeField] private int activePriority = 20;
     [SerializeField] private int inactivePriority = 10;
-    [SerializeField] private Transform shadowSpawnPoint;
 
     private BoxCollider2D box;
     private Room room;

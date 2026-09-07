@@ -1,9 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class AbilityManager : MonoBehaviour
+public class AbilityManager : SingletonBehaviour<AbilityManager>
 {
-    public static AbilityManager Instance { get; private set; }
 
     [Header("능력 오브젝트 참조")]
     [SerializeField] private FollowingShadow followingShadow;
@@ -11,10 +10,6 @@ public class AbilityManager : MonoBehaviour
 
     public bool HasShadowAbility { get; private set; }
 
-    private void Awake()
-    {
-        if (Instance == null) Instance = this;
-    }
 
     private void Start()
     {

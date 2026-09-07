@@ -1,9 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class FollowingShadow : MonoBehaviour
+public class FollowingShadow : SingletonBehaviour<FollowingShadow>
 {
-    public static FollowingShadow Instance;
 
     Rigidbody2D rigid;
 
@@ -11,9 +10,10 @@ public class FollowingShadow : MonoBehaviour
 
     public bool isFollowing = true;
 
-    private void Awake()
+    protected override void Awake()
     {
-        if (Instance == null) Instance = this;
+        base.Awake();
+
         rigid = GetComponent<Rigidbody2D>();
         inputActions = new InputActions();
     }
@@ -32,9 +32,12 @@ public class FollowingShadow : MonoBehaviour
     {
         PlayerLifeManager.Instance.OnDie += ResetShadowCurRoom;
     }
-    private void OnDestroy()
+    protected override void OnDestroy()
     {
-        PlayerLifeManager.Instance.OnDie -= ResetShadowCurRoom;
+        base.OnDestroy();
+
+        if (PlayerLifeManager.Instance != null)
+            PlayerLifeManager.Instance.OnDie -= ResetShadowCurRoom;
     }
 
     private void FixedUpdate()
@@ -59,7 +62,6 @@ public class FollowingShadow : MonoBehaviour
     // 체크포인트가 속한 방을 찾아 해당 방의 그림자 스폰 위치에 스폰. 플레이어 사망시 호출.
     public void ResetShadowCurRoom()
     {
-        Debug.Log("그림자 리셋");
 
         Checkpoint checkpoint = CheckpointManager.Instance.GetCheckPoint();
 

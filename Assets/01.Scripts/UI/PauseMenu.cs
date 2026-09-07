@@ -6,9 +6,8 @@ using UnityEngine.UI;
 // ESC 일시정지 메뉴. 화면 전체를 불투명하게 덮는다.
 //
 // 지도가 열려 있을 때 ESC는 지도만 닫는다(한 단계씩 뒤로). 메뉴는 그 다음 ESC부터 열린다.
-public class PauseMenu : MonoBehaviour
+public class PauseMenu : SingletonBehaviour<PauseMenu>
 {
-    public static PauseMenu Instance { get; private set; }
 
     [Header("패널")]
     [SerializeField] private GameObject panel;
@@ -44,9 +43,10 @@ public class PauseMenu : MonoBehaviour
 
     public bool IsPaused { get; private set; }
 
-    private void Awake()
+    protected override void Awake()
     {
-        if (Instance == null) Instance = this;
+        base.Awake();
+
         inputActions = new InputActions();
     }
 

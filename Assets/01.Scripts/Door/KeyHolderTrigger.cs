@@ -5,7 +5,6 @@ public class KeyHolderTrigger : MonoBehaviour
     [SerializeField] private KeyDoor door;
     [SerializeField] private LayerMask playerLayer;
     [SerializeField] private bool consumeKey = true;  // 열고 나면 열쇠 소모 여부
-    [SerializeField] private bool stayOpen = true;    // 한 번 열리면 계속 열린 채로
 
     [SerializeField] private GameObject keyHole;
 

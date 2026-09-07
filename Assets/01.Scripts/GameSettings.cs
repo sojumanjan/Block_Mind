@@ -6,10 +6,8 @@ using UnityEngine.Audio;
 //
 // 믹서에 "SFXVolume" / "BGMVolume"이 노출 파라미터로 등록되어 있어야 한다.
 // 믹서 창에서 이름을 바꾸면 아래 상수도 같이 바꿔야 한다.
-public class GameSettings : MonoBehaviour
+public class GameSettings : SingletonBehaviour<GameSettings>
 {
-    public static GameSettings Instance { get; private set; }
-
     public const string SfxParam = "SFXVolume";
     public const string BgmParam = "BGMVolume";
 
@@ -26,14 +24,9 @@ public class GameSettings : MonoBehaviour
     public float BgmVolume { get; private set; }
     public bool Fullscreen { get; private set; }
 
-    private void Awake()
+    protected override void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(this);
-            return;
-        }
-        Instance = this;
+        base.Awake();
 
         SfxVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(SfxKey, 1f));
         BgmVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(BgmKey, 1f));

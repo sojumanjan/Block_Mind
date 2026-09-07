@@ -2,19 +2,14 @@
 using System;
 using UnityEngine;
 
-public class CheckpointManager : MonoBehaviour
+public class CheckpointManager : SingletonBehaviour<CheckpointManager>
 {
-    public static CheckpointManager Instance { get; private set; }
 
     [Tooltip("게임 시작 시 활성 상태로 둘 체크포인트. 비워두면 첫 체크포인트를 밟기 전까지 활성 체크포인트가 없다.")]
     [SerializeField] private Checkpoint defaultCheckpoint;
 
     private Checkpoint currentActive;
 
-    private void Awake()
-    {
-        if (Instance == null) Instance = this;
-    }
 
     public event Action CheckPointActivate;
 

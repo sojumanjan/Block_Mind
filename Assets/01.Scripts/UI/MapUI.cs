@@ -1,24 +1,22 @@
-using System.Collections.Generic;
 using System.Collections;
-using Unity.VisualScripting;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Tilemaps;
 using UnityEngine.UI;
 
 // M키로 여는 전체 지도.
-// 씬의 Room을 전부 수집해 Coordinate를 UI 격자로 그리고,
-// 각 방의 타일맵을 읽어 방 내부 구조를 축소 텍스처로 굽는다.
+// 씬의 Room을 전부 수집해 Coordinate를 UI 격자로 그리고, 각 방의 타일맵을 읽어 구조를 축소 텍스처로 굽는다.
 // 방/타일을 추가해도 이 스크립트는 손댈 필요가 없다.
-// 휠로 확대/축소, 확대된 상태에서 좌클릭 드래그로 이동.
-public class MapUI : MonoBehaviour
+//
+// 실제 작업은 세 곳에 나눠져 있다.
+//   MinimapBaker      - 타일맵을 읽어 방별 텍스처로 굽고 아틀라스 한 장에 담는다
+//   MinimapPanZoom    - 휠 확대/축소, 드래그 이동, 클릭과 드래그 구분
+//   MinimapPortalIcons - 고속이동 차원문 아이콘 생성과 표시 상태
+//
+// 이 클래스는 격자 배치와 좌표 변환, 열기/닫기, 고속이동 실행만 담당한다.
+// [SerializeField] 필드는 전부 여기 남아 있다 - 옮기면 직렬화 경로가 바뀌어 인스펙터 값이 날아간다.
+public class MapUI : SingletonBehaviour<MapUI>
 {
-    public static MapUI Instance;
-
-    // 방 하나가 몇 타일인지 (32x18 유닛 / 타일 1유닛)
-    private const int TilesX = (int)Room.Width;
-    private const int TilesY = (int)Room.Height;
-
     [Header("참조")]
     [SerializeField] private GameObject panel;             // M키로 켜고 끄는 루트 (이 컴포넌트는 항상 활성인 곳에 둔다)
     [SerializeField] private RectTransform cellContainer;  // 셀들의 부모. 앵커/피벗 중앙
@@ -93,35 +91,29 @@ public class MapUI : MonoBehaviour
     [Tooltip("F1로 모든 방을 방문 처리한다. 빌드에 넣고 싶지 않으면 끈다")]
     [SerializeField] private bool enableDebugReveal = true;
 
-    private readonly Dictionary<Room, Image> cells = new Dictionary<Room, Image>();
-    private InputActions inputActions;
-
-    private Room currentRoom;
-    private Vector2 gridCenter;
-    private Vector2 gridExtent;         // 격자의 가로/세로 칸 수 - 1 (좌표 최대 - 최소)
-
-    private RectTransform panelRect;
-    private float zoom = 1f;
-
     // 일반 보기(M)와 고속이동(차원문에서 F) 두 모드가 있다.
     // 차원문 선택은 Travel 모드에서만 가능하다.
     private enum MapMode { View, Travel }
+
+    private readonly Dictionary<Room, Image> cells = new Dictionary<Room, Image>();
+
+    private InputActions inputActions;
+    private MinimapPanZoom panZoom;
+    private MinimapPortalIcons portalIcons;
+
+    private Room currentRoom;
+    private Vector2 gridCenter;
+
     private MapMode mode = MapMode.View;
-
-    private readonly Dictionary<Portal, Button> portalIcons = new Dictionary<Portal, Button>();
     private Portal originPortal;    // Travel 모드로 열 때 올라가 있던 차원문
-
-    private bool isDragging;
-    private bool dragMoved;         // 이번 누름이 임계값을 넘어 드래그가 되었나 (클릭과 구분)
-    private Vector2 dragStartLocal;
-    private Vector2 dragStartAnchored;
 
     // 지도가 열려 있는 동안에는 다른 마우스 입력을 막아야 한다 (MarkingManager에서 참조)
     public bool IsOpen => panel != null && panel.activeSelf;
 
-    private void Awake()
+    protected override void Awake()
     {
-        if (Instance == null) Instance = this;
+        base.Awake();
+
         inputActions = new InputActions();
     }
 
@@ -143,8 +135,21 @@ public class MapUI : MonoBehaviour
 
     private void Start()
     {
-        if (panel != null)
-            panelRect = panel.GetComponent<RectTransform>();
+        RectTransform panelRect = panel != null ? panel.GetComponent<RectTransform>() : null;
+
+        panZoom = new MinimapPanZoom(cellContainer, panelRect, new MinimapPanZoom.Settings
+        {
+            defaultZoom = defaultZoom,
+            minZoom = minZoom,
+            maxZoom = maxZoom,
+            zoomStep = zoomStep,
+            dragThreshold = dragThreshold,
+            paddingRooms = paddingRooms,
+            clampToBounds = clampToBounds,
+            step = cellSize + gap,
+        });
+
+        portalIcons = new MinimapPortalIcons(portalIconPrefab, cellContainer, portalIconSize, portalIconColor);
 
         BuildCells();
 
@@ -156,8 +161,7 @@ public class MapUI : MonoBehaviour
     {
         if (!IsOpen) return;
 
-        HandleZoom();
-        HandleDrag();
+        panZoom.Tick();
         UpdatePlayerMarker();   // 지도를 열어둔 채로 플레이어가 움직일 수 있으므로 매 프레임 갱신
     }
 
@@ -172,7 +176,7 @@ public class MapUI : MonoBehaviour
             return;
         }
 
-        Room[] rooms = FindObjectsByType<Room>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        Room[] rooms = FindObjectsByType<Room>(FindObjectsInactive.Include);
         if (rooms.Length == 0) return;
 
         // 지도를 컨테이너 중앙에 맞추기 위한 격자 중심
@@ -184,9 +188,9 @@ public class MapUI : MonoBehaviour
             max = Vector2.Max(max, room.Coordinate);
         }
         gridCenter = (min + max) * 0.5f;
-        gridExtent = max - min;
+        panZoom.GridExtent = max - min;
 
-        Dictionary<Room, Sprite> structures = BakeRoomStructures(rooms);
+        Dictionary<Room, Sprite> structures = new MinimapBaker(BuildPalette()).Bake(rooms);
 
         foreach (Room room in rooms)
         {
@@ -206,7 +210,7 @@ public class MapUI : MonoBehaviour
             cells[room] = image;
         }
 
-        BuildPortalIcons(rooms);
+        portalIcons.Build(rooms, WorldToCellLocal, OnPortalClicked);
 
         // 렌더 순서를 형제 순서로 정한다. 뒤에 있는 형제가 위에 그려진다.
         //   셀 < 현재 방 테두리 < 차원문 아이콘 < 플레이어 마커
@@ -217,11 +221,33 @@ public class MapUI : MonoBehaviour
             currentRoomHighlight.gameObject.SetActive(false);
         }
 
-        foreach (Button icon in portalIcons.Values)
-            icon.transform.SetAsLastSibling();
+        portalIcons.BringToFront();
 
         if (playerMarker != null)
             playerMarker.SetAsLastSibling();
+    }
+
+    // 인스펙터에서 맞춘 색들을 굽기용 묶음으로 옮긴다
+    private MinimapBaker.Palette BuildPalette()
+    {
+        return new MinimapBaker.Palette
+        {
+            pixelsPerTile = pixelsPerTile,
+            showObjects = showObjects,
+
+            ground = groundTileColor,
+            obstacle = obstacleTileColor,
+            passable = passableTileColor,
+            wire = wireTileColor,
+            blockZone = blockZoneTileColor,
+
+            door = doorColor,
+            button = buttonColor,
+            hazard = hazardColor,
+            checkpoint = checkpointColor,
+            item = itemColor,
+            generic = genericObjectColor,
+        };
     }
 
     // 격자 좌표 -> 컨테이너 로컬 좌표(px)
@@ -241,340 +267,6 @@ public class MapUI : MonoBehaviour
 
         Vector2 cellOrigin = CoordinateToLocal(room.Coordinate) - cellSize * 0.5f;
         return cellOrigin + new Vector2(u * cellSize.x, v * cellSize.y);
-    }
-
-    // 차원문 아이콘은 구운 텍스처가 아니라 별도 UI여야 한다. 텍스처 픽셀은 클릭을 못 받는다.
-    private void BuildPortalIcons(Room[] rooms)
-    {
-        if (portalIconPrefab == null || cellContainer == null) return;
-
-        foreach (Room room in rooms)
-        {
-            if (room.Portals == null) continue;
-
-            foreach (Portal portal in room.Portals)
-            {
-                RectTransform icon = Instantiate(portalIconPrefab, cellContainer);
-                icon.name = "Portal " + room.name;
-                icon.sizeDelta = portalIconSize;
-
-                // 발밑을 기준점으로 두어 아이콘을 키워도 위로만 자라게 한다
-                icon.pivot = new Vector2(0.5f, 0f);
-                icon.anchoredPosition = WorldToCellLocal(room, portal.MapFootPosition);
-
-                // 차원문 스프라이트를 그대로 아이콘으로 쓴다. 비율은 유지한다.
-                Image iconImage = icon.GetComponent<Image>();
-                if (iconImage != null)
-                {
-                    Sprite sprite = portal.MapIcon;
-                    if (sprite != null)
-                    {
-                        iconImage.sprite = sprite;
-                        iconImage.preserveAspect = true;
-                    }
-                }
-
-                Button button = icon.GetComponent<Button>();
-                if (button == null)
-                {
-                    Debug.LogWarning("portalIconPrefab에 Button이 없습니다. 선택할 수 없습니다.", this);
-                    continue;
-                }
-
-                // Button의 ColorTint는 targetGraphic의 색을 자기가 덮어쓴다.
-                // 상태별 색은 MapUI가 Image.color로 직접 칠하므로 트랜지션을 끈다.
-                // (켜두면 interactable=false일 때 disabledColor의 알파가 먹어 반투명해진다)
-                button.transition = Selectable.Transition.None;
-
-                // 프리팹에 없더라도 호버 피드백이 붙도록 보장
-                if (icon.GetComponent<MapPortalIconHover>() == null)
-                    icon.gameObject.AddComponent<MapPortalIconHover>();
-
-                Portal captured = portal;   // 클로저가 반복 변수를 잡지 않도록 복사
-                button.onClick.AddListener(() => OnPortalClicked(captured));
-
-                portalIcons[portal] = button;
-            }
-        }
-    }
-
-    // ---------------------------------------------------------------- 타일 구조 굽기
-
-    // 씬의 모든 타일맵을 한 번만 훑어 방별 텍스처에 픽셀을 찍는다.
-    // 타일맵이 어느 Room의 자식인지는 신뢰하지 않고, 타일의 월드 좌표로 소속 방을 계산한다.
-    private Dictionary<Room, Sprite> BakeRoomStructures(Room[] rooms)
-    {
-        var sprites = new Dictionary<Room, Sprite>();
-        if (pixelsPerTile < 1) pixelsPerTile = 1;
-
-        int width = TilesX * pixelsPerTile;
-        int height = TilesY * pixelsPerTile;
-
-        // 좌표 -> 방, 방 -> 픽셀 버퍼
-        var byCoordinate = new Dictionary<Vector2Int, Room>();
-        var buffers = new Dictionary<Room, Color32[]>();
-        var groundColors = new Dictionary<Room, Color32>();
-
-        foreach (Room room in rooms)
-        {
-            var key = new Vector2Int(Mathf.RoundToInt(room.Coordinate.x), Mathf.RoundToInt(room.Coordinate.y));
-            byCoordinate[key] = room;
-
-            var buffer = new Color32[width * height];   // 기본값은 투명
-            buffers[room] = buffer;
-
-            // 스테이지 조회를 타일마다 하지 않도록 방 단위로 미리 구해둔다
-            groundColors[room] = GroundColorOf(room);
-        }
-
-        // Ground -> Wire/Passable -> Obstacle 순으로 덮어써서 위험 요소가 위에 보이도록
-        Tilemap[] tilemaps = FindObjectsByType<Tilemap>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        System.Array.Sort(tilemaps, (a, b) => DrawOrderOf(a).CompareTo(DrawOrderOf(b)));
-
-        foreach (Tilemap tilemap in tilemaps)
-        {
-            // 지형은 방의 스테이지에 따라 색이 달라지므로 방을 찾은 뒤에 결정한다.
-            // 나머지 분류는 타일맵마다 고정이라 여기서 한 번만 구한다.
-            TileCategory category = CategoryOf(tilemap);
-            Color32 categoryColor = TileColorOf(category);
-
-            foreach (Vector3Int position in tilemap.cellBounds.allPositionsWithin)
-            {
-                if (!tilemap.HasTile(position)) continue;
-
-                Vector3 world = tilemap.GetCellCenterWorld(position);
-
-                Room room;
-                if (!byCoordinate.TryGetValue(Room.WorldToCoordinate(world), out room)) continue;
-
-                Color32 color = category == TileCategory.Ground ? groundColors[room] : categoryColor;
-
-                // 픽셀 시작점은 타일 중심이 아니라 좌하단 코너로 잡아야 한다.
-                // 중심(x.5)을 쓰면 pixelsPerTile이 2 이상일 때 마지막 타일이 텍스처 밖으로 반 칸 넘친다.
-                Vector3 corner = tilemap.CellToWorld(position);
-
-                Vector3 roomCenter = room.transform.position;
-                float localX = corner.x - (roomCenter.x - Room.Width * 0.5f);
-                float localY = corner.y - (roomCenter.y - Room.Height * 0.5f);
-
-                int px = Mathf.RoundToInt(localX * pixelsPerTile);
-                int py = Mathf.RoundToInt(localY * pixelsPerTile);
-
-                Color32[] buffer = buffers[room];
-                for (int oy = 0; oy < pixelsPerTile; oy++)
-                {
-                    int y = py + oy;
-                    if (y < 0 || y >= height) continue;
-
-                    int rowStart = y * width;
-                    for (int ox = 0; ox < pixelsPerTile; ox++)
-                    {
-                        int x = px + ox;
-                        if (x < 0 || x >= width) continue;
-
-                        buffer[rowStart + x] = color;
-                    }
-                }
-            }
-        }
-
-        // 타일 위에 오브젝트를 덮어 찍는다. 타일맵과 달리 이쪽은 Room 자식 구조가 신뢰할 수 있다.
-        if (showObjects)
-        {
-            foreach (Room room in rooms)
-            {
-                Color32[] buffer = buffers[room];
-
-                foreach (SpriteRenderer renderer in room.GetComponentsInChildren<SpriteRenderer>(true))
-                {
-                    // 차원문은 클릭 가능한 UI 아이콘으로 따로 그린다.
-                    // 여기서도 찍으면 아이콘 밑에 픽셀 덩어리가 남아 지저분해진다.
-                    if (renderer.GetComponentInParent<Portal>() != null) continue;
-
-                    Bounds bounds = renderer.bounds;
-
-                    // 방보다 큰 스프라이트는 배경 장식으로 보고 건너뛴다 (셀을 통째로 덮어버린다)
-                    if (bounds.size.x > Room.Width || bounds.size.y > Room.Height) continue;
-
-                    PaintWorldBounds(buffer, room, bounds, width, height, ObjectColorOf(renderer, room));
-                }
-
-                // 레이저 광선은 LineRenderer를 못 믿으므로 직접 구간을 받아 선으로 찍는다
-                foreach (LaserObstacle laser in room.GetComponentsInChildren<LaserObstacle>(true))
-                {
-                    Vector2 origin, end;
-                    if (!laser.TryGetBeam(out origin, out end)) continue;
-
-                    PaintWorldLine(buffer, room, origin, end, width, height, hazardColor);
-                }
-            }
-        }
-
-        // 방마다 텍스처를 만들면 Image가 서로 다른 텍스처를 참조해 UI 배칭이 깨진다(방 1개 = 드로우 콜 1개).
-        // 한 장에 슬롯을 나눠 담고 Sprite의 rect로 잘라 쓰면 전부 같은 텍스처가 되어 한 배치로 묶인다.
-        // 슬롯 위치는 지도상 배치와 무관하므로 순서대로 채운다.
-        int columns = Mathf.CeilToInt(Mathf.Sqrt(rooms.Length));
-        int rows = Mathf.CeilToInt(rooms.Length / (float)columns);
-
-        var atlas = new Texture2D(columns * width, rows * height, TextureFormat.RGBA32, false);
-        atlas.filterMode = FilterMode.Point;    // 보간이 없어 슬롯 사이 여백(padding)이 필요 없다
-        atlas.wrapMode = TextureWrapMode.Clamp;
-
-        for (int i = 0; i < rooms.Length; i++)
-        {
-            Room room = rooms[i];
-
-            int slotX = (i % columns) * width;
-            int slotY = (i / columns) * height;
-
-            atlas.SetPixels32(slotX, slotY, width, height, buffers[room]);
-
-            sprites[room] = Sprite.Create(
-                atlas,
-                new Rect(slotX, slotY, width, height),
-                new Vector2(0.5f, 0.5f),
-                100f, 0, SpriteMeshType.FullRect);
-        }
-
-        // 두 번째 인자 true = CPU 사본 해제. 이후 GetPixels 계열은 못 쓴다.
-        atlas.Apply(false, true);
-
-        return sprites;
-    }
-
-    // 월드 AABB를 방 로컬 픽셀 사각형으로 바꿔 칠한다. 아주 얇은 것도 최소 1픽셀은 남긴다.
-    private void PaintWorldBounds(Color32[] buffer, Room room, Bounds bounds, int width, int height, Color32 color)
-    {
-        Vector3 roomCenter = room.transform.position;
-        float originX = roomCenter.x - Room.Width * 0.5f;
-        float originY = roomCenter.y - Room.Height * 0.5f;
-
-        int x0 = Mathf.FloorToInt((bounds.min.x - originX) * pixelsPerTile);
-        int x1 = Mathf.CeilToInt((bounds.max.x - originX) * pixelsPerTile);
-        int y0 = Mathf.FloorToInt((bounds.min.y - originY) * pixelsPerTile);
-        int y1 = Mathf.CeilToInt((bounds.max.y - originY) * pixelsPerTile);
-
-        if (x1 <= x0) x1 = x0 + 1;
-        if (y1 <= y0) y1 = y0 + 1;
-
-        x0 = Mathf.Clamp(x0, 0, width);
-        x1 = Mathf.Clamp(x1, 0, width);
-        y0 = Mathf.Clamp(y0, 0, height);
-        y1 = Mathf.Clamp(y1, 0, height);
-
-        for (int y = y0; y < y1; y++)
-        {
-            int rowStart = y * width;
-            for (int x = x0; x < x1; x++)
-                buffer[rowStart + x] = color;
-        }
-    }
-
-    // 월드 선분을 픽셀 단위로 따라가며 칠한다. 기울어진 레이저도 그대로 표현된다.
-    private void PaintWorldLine(Color32[] buffer, Room room, Vector2 from, Vector2 to, int width, int height, Color32 color)
-    {
-        Vector3 roomCenter = room.transform.position;
-        var origin = new Vector2(roomCenter.x - Room.Width * 0.5f, roomCenter.y - Room.Height * 0.5f);
-
-        Vector2 fromPixel = (from - origin) * pixelsPerTile;
-        Vector2 toPixel = (to - origin) * pixelsPerTile;
-
-        // 픽셀 하나도 건너뛰지 않도록 반 픽셀씩 전진
-        int steps = Mathf.CeilToInt(Vector2.Distance(fromPixel, toPixel) * 2f);
-        if (steps <= 0) steps = 1;
-
-        for (int i = 0; i <= steps; i++)
-        {
-            Vector2 point = Vector2.Lerp(fromPixel, toPixel, (float)i / steps);
-
-            int x = Mathf.FloorToInt(point.x);
-            int y = Mathf.FloorToInt(point.y);
-            if (x < 0 || x >= width || y < 0 || y >= height) continue;   // 방 밖으로 나간 구간은 버린다
-
-            buffer[y * width + x] = color;
-        }
-    }
-
-    // 스프라이트가 붙은 오브젝트부터 Room까지 부모를 거슬러 올라가며 아는 스크립트를 찾는다.
-    // (레이저의 Mouth처럼 자식에 스프라이트만 있는 경우가 있다)
-    private Color32 ObjectColorOf(SpriteRenderer renderer, Room room)
-    {
-        Transform cursor = renderer.transform;
-
-        while (cursor != null)
-        {
-            if (cursor.GetComponent<Door>() != null || cursor.GetComponent<KeyDoor>() != null) return doorColor;
-            if (cursor.GetComponent<ButtonZone>() != null) return buttonColor;
-            if (cursor.GetComponent<LaserObstacle>() != null) return hazardColor;
-            if (cursor.GetComponent<Checkpoint>() != null) return checkpointColor;
-            if (cursor.GetComponent<Key>() != null || cursor.GetComponent<KeyHolderTrigger>() != null) return itemColor;
-            if (cursor.GetComponent<AbilityBase>() != null) return itemColor;
-
-            if (cursor == room.transform) break;
-            cursor = cursor.parent;
-        }
-
-        // 아는 스크립트가 없으면 태그/레이어로 위험물 여부만 판별
-        if (renderer.CompareTag("Obstacle")) return hazardColor;
-        if (LayerMask.LayerToName(renderer.gameObject.layer) == "Obstacle") return hazardColor;
-
-        return genericObjectColor;
-    }
-
-    // 레이어를 우선 보고, 레이어가 Default인 타일맵은 이름으로 판정한다.
-    private int DrawOrderOf(Tilemap tilemap)
-    {
-        switch (CategoryOf(tilemap))
-        {
-            case TileCategory.Ground: return 0;
-            case TileCategory.Wire: return 1;
-            case TileCategory.Passable: return 2;
-            case TileCategory.BlockZone: return 3;
-            case TileCategory.Obstacle: return 4;
-        }
-        return 1;
-    }
-
-    private Color32 TileColorOf(TileCategory category)
-    {
-        switch (category)
-        {
-            case TileCategory.Obstacle: return obstacleTileColor;
-            case TileCategory.Passable: return passableTileColor;
-            case TileCategory.Wire: return wireTileColor;
-            case TileCategory.BlockZone: return blockZoneTileColor;
-        }
-        return groundTileColor;
-    }
-
-    // 지형 색은 방이 참조하는 StageData가 소유한다.
-    // 스테이지가 비어 있는 방만 기본 색으로 떨어진다.
-    private Color32 GroundColorOf(Room room)
-    {
-        if (room == null || room.Stage == null) return groundTileColor;
-
-        return room.Stage.MinimapGroundColor;
-    }
-
-    private enum TileCategory { Ground, Obstacle, Passable, Wire, BlockZone }
-
-    private TileCategory CategoryOf(Tilemap tilemap)
-    {
-        string layer = LayerMask.LayerToName(tilemap.gameObject.layer);
-
-        if (layer == "Obstacle") return TileCategory.Obstacle;
-        if (layer == "PassableGround") return TileCategory.Passable;
-        if (layer == "BlockZone") return TileCategory.BlockZone;
-        if (layer == "Ground") return TileCategory.Ground;
-
-        // 레이어가 지정되지 않은 타일맵은 이름으로 추정
-        string name = tilemap.name;
-        if (name.Contains("Obstacle")) return TileCategory.Obstacle;
-        if (name.Contains("Passable")) return TileCategory.Passable;
-        if (name.Contains("Wire")) return TileCategory.Wire;
-        if (name.Contains("BlockZone")) return TileCategory.BlockZone;
-
-        return TileCategory.Ground;
     }
 
     // ---------------------------------------------------------------- 열기 / 닫기
@@ -637,8 +329,21 @@ public class MapUI : MonoBehaviour
         AudioManager.PlayUiSfx(mapOpenSound);
 
         // Travel 모드에서는 출발 차원문이 있는 방을 중앙에 둔다
-        ResetView(origin != null && origin.Room != null ? origin.Room : currentRoom);
+        Room focus = origin != null && origin.Room != null ? origin.Room : currentRoom;
+        panZoom.ResetView(focus == null ? Vector2.zero : CoordinateToLocal(focus.Coordinate));
+
         Refresh();
+    }
+
+    // ESC 메뉴가 "지도가 열려 있으면 지도부터 닫는다"를 하려면 외부에서 부를 수 있어야 한다
+    public void Close()
+    {
+        panel.SetActive(false);
+
+        AudioManager.PlayUiSfx(mapCloseSound);
+        mode = MapMode.View;
+        originPortal = null;
+        panZoom.CancelDrag();
     }
 
     // 디버그: 모든 방을 방문 처리한다. 되돌리는 기능은 없다(Room.IsVisited는 한 방향).
@@ -651,160 +356,69 @@ public class MapUI : MonoBehaviour
 
     public void RevealAllRooms()
     {
-        int revealed = 0;
-
         // cells에 없는 방까지 포함하도록 씬에서 다시 훑는다
         foreach (Room room in FindObjectsByType<Room>(FindObjectsInactive.Include))
-        {
-            if (room.IsVisited) continue;
-
             room.MarkVisited();
-            revealed++;
-        }
 
         // 닫혀 있어도 셀/아이콘 상태를 맞춰둔다. 다음에 열 때 바로 반영된다.
         Refresh();
-
-        Debug.Log("[디버그] 방 " + revealed + "개를 새로 방문 처리했습니다. (총 " + cells.Count + "개 셀)");
     }
 
-    // ESC 메뉴가 "지도가 열려 있으면 지도부터 닫는다"를 하려면 외부에서 부를 수 있어야 한다
-    public void Close()
-    {
-        panel.SetActive(false);
+    // ---------------------------------------------------------------- 고속이동
 
-        AudioManager.PlayUiSfx(mapCloseSound);
-        mode = MapMode.View;
-        originPortal = null;
-        isDragging = false;
-        dragMoved = false;
+    // 차원문 아이콘 클릭
+    private void OnPortalClicked(Portal target)
+    {
+        if (panZoom.DragMoved) return;          // 지도를 끌던 손이 떨어진 것은 클릭이 아니다
+        if (mode != MapMode.Travel) return;     // 일반 지도(M)에서는 선택 불가
+        if (target == null || target == originPortal) return;
+
+        if (PlayerController.Instance == null) return;
+
+        StartCoroutine(TravelTo(target));
     }
 
-    // 열 때마다 기본 배율로 돌리고 현재 방을 화면 정가운데에 둔다.
-    // 이전에 보던 위치를 유지하고 싶으면 이 호출만 빼면 된다.
-    private void ResetView(Room focus)
+    private IEnumerator TravelTo(Portal target)
     {
-        zoom = Mathf.Clamp(defaultZoom, minZoom, maxZoom);
-        ApplyZoom();
-        CenterOnRoom(focus);
+        // 다른 포탈로 순간이동을 클릭한 순간
+        AudioManager.PlayUiSfx(portalInSound);
+        // 여기에 포탈에 빨려들어가는 애니메이션 teleportTime동안 실행
 
-        isDragging = false;
-        dragMoved = false;
-    }
+        yield return new WaitForSeconds(teleportTime);
 
-    // 지정한 방의 셀이 패널 중앙에 오도록 컨테이너를 옮긴다.
-    // 셀의 컨테이너 로컬 위치가 zoom배로 확대되므로 그만큼 반대로 밀어준다.
-    private void CenterOnRoom(Room focus)
-    {
-        if (cellContainer == null) return;
+        Transform player = PlayerController.Instance.transform;
+        player.position = target.ArrivalPosition;
 
-        cellContainer.anchoredPosition = focus == null
-            ? Vector2.zero                                              // 아직 방 진입 전이면 격자 중앙
-            : -CoordinateToLocal(focus.Coordinate) * zoom;
-
-        ClampPosition();
-    }
-
-    // ---------------------------------------------------------------- 확대 / 축소
-
-    private void HandleZoom()
-    {
-        if (cellContainer == null) return;
-
-        float scroll = Mouse.current.scroll.ReadValue().y;
-        if (Mathf.Approximately(scroll, 0f)) return;
-
-        float prevZoom = zoom;
-
-        // 휠 한 칸이 보통 120. 트랙패드의 작은 값도 비례해서 반영되도록 나눈다.
-        float notches = scroll / 120f;
-        zoom = Mathf.Clamp(zoom * Mathf.Pow(1f + zoomStep, notches), minZoom, maxZoom);
-
-        if (Mathf.Approximately(zoom, prevZoom)) return;
-
-        // 커서 아래의 지점을 제자리에 고정한 채 확대/축소
-        Vector2 cursorLocal;
-        if (TryGetPanelLocalPoint(Mouse.current.position.ReadValue(), out cursorLocal))
+        // 이동 전 속도가 남아 있으면 도착 직후 엉뚱한 방향으로 튄다
+        Rigidbody2D body = PlayerController.Instance.GetComponent<Rigidbody2D>();
+        if (body != null)
         {
-            Vector2 anchored = cellContainer.anchoredPosition;
-            cellContainer.anchoredPosition = cursorLocal - (cursorLocal - anchored) * (zoom / prevZoom);
+            body.position = target.ArrivalPosition;
+            body.linearVelocity = Vector2.zero;
         }
 
-        ApplyZoom();
-        ClampPosition();
+        AudioManager.PlayUiSfx(portalOutSound);
+
+        // 맵 반대편으로 날아간 블럭과 경로는 의미가 없으므로 정리한다
+        if (MarkingManager.Instance != null)
+            MarkingManager.Instance.ResetMarkingState();
+
+        Close();
+
+        // 방 카메라는 플레이어가 새 방 트리거에 들어가면서 다음 물리 스텝에 전환된다.
+        // 그때 Cinemachine이 맵을 가로질러 블렌딩하지 않도록 한 프레임 뒤에 끊어준다.
+        StartCoroutine(CutCameraNextFrame());
     }
 
-    private void ApplyZoom()
+    private IEnumerator CutCameraNextFrame()
     {
-        if (cellContainer != null)
-            cellContainer.localScale = new Vector3(zoom, zoom, 1f);
-    }
+        yield return null;
+        yield return new WaitForFixedUpdate();
 
-    // ---------------------------------------------------------------- 드래그 이동
+        if (Camera.main == null) yield break;
 
-    private void HandleDrag()
-    {
-        if (cellContainer == null) return;
-
-        Mouse mouse = Mouse.current;
-
-        if (mouse.leftButton.wasPressedThisFrame)
-        {
-            if (TryGetPanelLocalPoint(mouse.position.ReadValue(), out dragStartLocal))
-            {
-                isDragging = true;
-                dragMoved = false;      // 누른 순간에는 아직 클릭 후보
-                dragStartAnchored = cellContainer.anchoredPosition;
-            }
-        }
-
-        if (!isDragging) return;
-
-        if (!mouse.leftButton.isPressed)
-        {
-            isDragging = false;
-            return;
-        }
-
-        Vector2 current;
-        if (!TryGetPanelLocalPoint(mouse.position.ReadValue(), out current)) return;
-
-        Vector2 delta = current - dragStartLocal;
-
-        // 임계값을 넘는 순간부터 드래그로 확정. 이후 버튼 클릭은 무시된다.
-        if (!dragMoved && delta.magnitude > dragThreshold)
-            dragMoved = true;
-
-        if (!dragMoved) return;         // 아직 클릭일 수 있으니 지도를 움직이지 않는다
-
-        cellContainer.anchoredPosition = dragStartAnchored + delta;
-        ClampPosition();
-    }
-
-    // 어떤 방이든 화면 정가운데로 가져올 수 있고, 그 바깥으로 paddingRooms 칸만큼 더 여유를 준다.
-    // (화면보다 작을 때 중앙 고정하는 방식으로는 특정 방을 가운데 놓을 수 없다)
-    private void ClampPosition()
-    {
-        if (!clampToBounds || cellContainer == null) return;
-
-        Vector2 step = cellSize + gap;
-        Vector2 half = gridExtent * 0.5f + Vector2.one * paddingRooms;
-        Vector2 limit = half * step * zoom;
-
-        Vector2 pos = cellContainer.anchoredPosition;
-        pos.x = Mathf.Clamp(pos.x, -limit.x, limit.x);
-        pos.y = Mathf.Clamp(pos.y, -limit.y, limit.y);
-        cellContainer.anchoredPosition = pos;
-    }
-
-    // Screen Space - Overlay 캔버스이므로 camera는 null을 넘긴다.
-    private bool TryGetPanelLocalPoint(Vector2 screenPosition, out Vector2 local)
-    {
-        local = Vector2.zero;
-        if (panelRect == null) return false;
-
-        return RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            panelRect, screenPosition, null, out local);
+        var brain = Camera.main.GetComponent<Unity.Cinemachine.CinemachineBrain>();
+        if (brain != null) brain.ResetState();
     }
 
     // ---------------------------------------------------------------- 갱신
@@ -822,86 +436,9 @@ public class MapUI : MonoBehaviour
                 pair.Value.color = visitedTint;
         }
 
-        UpdatePortalIcons();
+        portalIcons.Refresh(mode == MapMode.Travel, originPortal);
         UpdateCurrentRoomHighlight();
         UpdatePlayerMarker();
-    }
-
-    // 방문한 방의 차원문만 보인다. 선택은 Travel 모드에서만 가능하다.
-    private void UpdatePortalIcons()
-    {
-        foreach (KeyValuePair<Portal, Button> pair in portalIcons)
-        {
-            Portal portal = pair.Key;
-            Button button = pair.Value;
-
-            bool visible = portal.Room != null && portal.Room.IsVisited;
-            button.gameObject.SetActive(visible);
-            if (!visible) continue;
-
-            // 선택 가능 여부는 모드로만 갈린다. 색은 어느 모드에서든 동일하게 둔다.
-            button.interactable = mode == MapMode.Travel && portal != originPortal;
-
-            Image image = button.GetComponent<Image>();
-            if (image != null)
-                image.color = portalIconColor;
-        }
-    }
-
-    // 차원문 아이콘 클릭
-    private void OnPortalClicked(Portal target)
-    {
-        if (dragMoved) return;                  // 지도를 끌던 손이 떨어진 것은 클릭이 아니다
-        if (mode != MapMode.Travel) return;     // 일반 지도(M)에서는 선택 불가
-        if (target == null || target == originPortal) return;
-
-        if (PlayerController.Instance == null) return;
-
-        StartCoroutine(TravelTo(target));
-    }
-
-    IEnumerator TravelTo(Portal target)
-    {
-
-        // 다른 포탈로 순간이동을 클릭한 순간
-        AudioManager.Instance.PlayUI(portalInSound);
-        // 여기에 포탈에 빨려들어가는 애니메이션  teleportTime동안 실행
-
-        yield return new WaitForSeconds(teleportTime);
-
-        Transform player = PlayerController.Instance.transform;
-        player.position = target.ArrivalPosition;
-
-        // 이동 전 속도가 남아 있으면 도착 직후 엉뚱한 방향으로 튄다
-        Rigidbody2D body = PlayerController.Instance.GetComponent<Rigidbody2D>();
-        if (body != null)
-        {
-            body.position = target.ArrivalPosition;
-            body.linearVelocity = Vector2.zero;
-        }
-
-        AudioManager.Instance.PlayUI(portalOutSound);
-
-        // 맵 반대편으로 날아간 블럭과 경로는 의미가 없으므로 정리한다
-        if (MarkingManager.Instance != null)
-            MarkingManager.Instance.ResetMarkingState();
-
-        Close();
-
-        // 방 카메라는 플레이어가 새 방 트리거에 들어가면서 다음 물리 스텝에 전환된다.
-        // 그때 Cinemachine이 맵을 가로질러 블렌딩하지 않도록 한 프레임 뒤에 끊어준다.
-        StartCoroutine(CutCameraNextFrame());
-    }
-
-    private System.Collections.IEnumerator CutCameraNextFrame()
-    {
-        yield return null;
-        yield return new WaitForFixedUpdate();
-
-        if (Camera.main == null) yield break;
-
-        var brain = Camera.main.GetComponent<Unity.Cinemachine.CinemachineBrain>();
-        if (brain != null) brain.ResetState();
     }
 
     private void UpdateCurrentRoomHighlight()
@@ -925,14 +462,6 @@ public class MapUI : MonoBehaviour
         playerMarker.gameObject.SetActive(visible);
         if (!visible) return;
 
-        Vector3 playerPos = PlayerController.Instance.transform.position;
-        Vector3 roomCenter = currentRoom.transform.position;
-
-        // Room의 Transform은 방의 중앙이므로 좌하단으로 옮겨서 0~1 비율을 낸다
-        float u = Mathf.Clamp01((playerPos.x - (roomCenter.x - Room.Width * 0.5f)) / Room.Width);
-        float v = Mathf.Clamp01((playerPos.y - (roomCenter.y - Room.Height * 0.5f)) / Room.Height);
-
-        Vector2 cellOrigin = CoordinateToLocal(currentRoom.Coordinate) - cellSize * 0.5f;
-        playerMarker.anchoredPosition = cellOrigin + new Vector2(u * cellSize.x, v * cellSize.y);
+        playerMarker.anchoredPosition = WorldToCellLocal(currentRoom, PlayerController.Instance.transform.position);
     }
 }

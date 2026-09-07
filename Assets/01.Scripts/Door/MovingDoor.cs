@@ -2,7 +2,7 @@ using UnityEngine;
 using DG.Tweening;
 
 // ButtonZone에 연결되는 이동 발판.
-public class MovingDoor : ActivatableDevice
+public class MovingDoor : MovingDevice
 {
     public enum BarAxis { X, Y }
 
@@ -31,10 +31,6 @@ public class MovingDoor : ActivatableDevice
     [SerializeField] private Vector2 topCheckSize = new Vector2(2f, 0.2f);
     [Tooltip("발판 중심에서 윗면까지의 거리")]
     [SerializeField] private float topCheckOffset = 0.5f;
-
-    [Header("사운드")]
-    [Tooltip("발판이 움직이는 동안만 재생된다. LoopSound의 playOnEnable은 꺼두어야 한다")]
-    [SerializeField] private LoopSound moveSound;
 
     [Header("기즈모")]
     [SerializeField] private bool previewPath = true;
@@ -195,40 +191,21 @@ public class MovingDoor : ActivatableDevice
     {
         Vector2 boxCenter = (Vector2)platform.position + Vector2.up * topCheckOffset;
 
-        Collider2D hit = Physics2D.OverlapBox(boxCenter, topCheckSize, 0f, playerLayer);
-        if (hit == null) return;
-
-        Rigidbody2D body = hit.attachedRigidbody;
-        if (body == null)
-        {
-            hit.transform.position += delta;
-            return;
-        }
+        Collider2D rider = RiderCarry.FindRider(boxCenter, topCheckSize, 0f, playerLayer);
+        if (rider == null) return;
 
         Vector2 carry = delta;
 
         // 위로 솟구치는 중(점프)이면 세로로는 딸려가지 않는다. 가로는 그대로 따라간다.
-        if (body.linearVelocity.y > 0.01f)
-            carry.y = 0f;
+        if (RiderCarry.IsRising(rider)) carry.y = 0f;
 
-        body.position += carry;
+        RiderCarry.Move(rider, carry);
 
         // 발판이 내려갈 때만 낙하 속도를 죽여서 톡톡거림 방지
-        if (delta.y < 0f && body.linearVelocity.y < 0f)
-            body.linearVelocity = new Vector2(body.linearVelocity.x, 0f);
+        if (delta.y < 0f) RiderCarry.DampenFall(rider);
     }
 
     // ---------------------------------------------------------------- 사운드
-
-    private void PlayMoveSound()
-    {
-        if (moveSound != null) moveSound.Play();
-    }
-
-    private void StopMoveSound()
-    {
-        if (moveSound != null) moveSound.Stop();
-    }
 
     // ---------------------------------------------------------------- 기즈모
 

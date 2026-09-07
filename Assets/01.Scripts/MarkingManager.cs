@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class MarkingManager : MonoBehaviour
+public class MarkingManager : SingletonBehaviour<MarkingManager>
 {
-    public static MarkingManager Instance;
     [Header("마킹 설정")]
     [SerializeField] private int maxMarkingCount = 5;      // 최대 마킹 가능 횟수 (인스펙터 조절)
     [SerializeField] private Transform markSourceTransform; // 마킹 위치의 기준이 되는 오브젝트
@@ -40,10 +39,11 @@ public class MarkingManager : MonoBehaviour
     public int MarkCount => markPositions.Count;
     public bool HasActiveBlock => activeBlock != null;
 
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
+
         inputActions = new InputActions();
-        if (Instance == null) Instance = this;
     }
 
     private void OnEnable()
@@ -65,8 +65,10 @@ public class MarkingManager : MonoBehaviour
             CheckpointManager.Instance.CheckPointActivate += ResetMarkingState;
     }
 
-    private void OnDestroy()
+    protected override void OnDestroy()
     {
+        base.OnDestroy();
+
         if (CheckpointManager.Instance != null)
             CheckpointManager.Instance.CheckPointActivate -= ResetMarkingState;
     }
@@ -232,22 +234,12 @@ public class MarkingManager : MonoBehaviour
     {
         Vector2 boxCenter = new Vector2(blockPos.x, blockPos.y + topCheckOffset);
 
-        Collider2D hit = Physics2D.OverlapBox(
-            boxCenter,
-            blockTopSize,
-            0f,
-            playerLayer);
+        Collider2D rider = RiderCarry.FindRider(boxCenter, blockTopSize, 0f, playerLayer);
+        if (rider == null) return;
 
-        if (hit == null) return;
-
-        // X축 이동량만 사용 (Y축은 블럭 위에 서 있으므로 콜라이더가 알아서 처리)
-        Vector2 deltaX = new Vector2(delta.x, 0f);
-
-        Rigidbody2D playerRb = hit.attachedRigidbody;
-        if (playerRb != null)
-            playerRb.position += deltaX;
-        else
-            hit.transform.position += (Vector3)deltaX;
+        // X축 이동량만 사용 (Y축은 블럭 위에 서 있으므로 콜라이더가 알아서 처리).
+        // 가로로만 움직이므로 점프 여부를 볼 필요가 없다.
+        RiderCarry.Move(rider, new Vector2(delta.x, 0f));
     }
 
     private void ClearMarks()
@@ -261,6 +253,8 @@ public class MarkingManager : MonoBehaviour
     // 체크포인트 활성화 등 외부 요청으로 마킹 상태를 즉시 초기화. 쿨타임 없음.
     public void ResetMarkingState()
     {
+        if (isMoving) return;
+
         if (moveRoutine != null)
         {
             StopCoroutine(moveRoutine);
