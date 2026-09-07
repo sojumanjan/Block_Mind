@@ -26,6 +26,7 @@ public class Key : MonoBehaviour
     private float velocityY;
     private float bobOffset;
     private Vector2 originPos;
+    private Vector3 originScale;
 
     private void Start()
     {
@@ -34,6 +35,7 @@ public class Key : MonoBehaviour
             .SetLoops(-1, LoopType.Yoyo)
             .SetLink(gameObject);
         originPos = transform.position;
+        originScale = transform.localScale;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -92,11 +94,26 @@ public class Key : MonoBehaviour
             .OnComplete(() => Destroy(gameObject));
     }
 
-    // 열쇠 위치 초기화 후 콜라이더 다시 On
+    // 체크포인트를 밟았을 때 PlayerKeyHolder가 호출.
+    // 들고 있던 열쇠가 눈앞에서 뚝 사라지지 않도록 Consume과 같은 연출로 줄어든 뒤
+    // 원래 자리에 되돌려 놓는다. Consume과 달리 파괴하지 않으므로 스케일 복구가 필요하다.
     public void ResetLocation()
     {
         followTarget = null;
+
+        // 획득 펀치가 아직 돌고 있으면 스케일 트윈이 서로 덮어써서 크기가 튄다
+        transform.DOKill();
+
+        transform.DOScale(Vector3.zero, consumeDuration)
+            .SetEase(consumeEase)
+            .SetLink(gameObject)
+            .OnComplete(RestoreToOrigin);
+    }
+
+    private void RestoreToOrigin()
+    {
         transform.position = originPos;
+        transform.localScale = originScale;
         GetComponent<Collider2D>().enabled = true;
     }
 }
