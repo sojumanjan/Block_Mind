@@ -57,7 +57,7 @@ public class RoomCameraTrigger : MonoBehaviour
         Gizmos.matrix = transform.localToWorldMatrix;
         Gizmos.DrawCube(col.offset, col.size);
 
-        Gizmos.color = Color.green;
+        Gizmos.color = Color.red;
         Gizmos.DrawWireCube(col.offset, col.size);
     }
 }
