@@ -1,3 +1,4 @@
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -11,12 +12,16 @@ public class AbilityManager : SingletonBehaviour<AbilityManager>
     public bool hasMarkingFirst { get; private set; }
     public bool hasMarkingSecond { get; private set; }
 
+    [Header("디버깅")]
+    [SerializeField] bool _markingFirst;
+    [SerializeField] int _markingCount;
+
 
     private void Start()
     {
-        // 게임 시작 시 능력 false로 설정.
-        SetMarkingFirst(false);
-        MarkingManager.Instance.SetMarkingCount(1);
+        SetMarkingFirst(_markingFirst);
+
+        MarkingManager.Instance.SetMarkingCount(_markingCount);
     }
 
     // 마킹 시스템 + 마킹 1개 능력 해금

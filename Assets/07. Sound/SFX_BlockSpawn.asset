@@ -15,6 +15,6 @@ MonoBehaviour:
   clips:
   - {fileID: 8300000, guid: 7d0abce2f3591a14aac336a1e2fe6492, type: 3}
   volume: 1
-  pitchRange: {x: 0.95, y: 1.05}
+  pitchRange: {x: 0.95, y: 0.95}
   muffleOutsideRoom: 1
   outsideRoomVolume: 0.35

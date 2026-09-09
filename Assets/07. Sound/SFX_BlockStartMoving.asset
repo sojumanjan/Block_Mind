@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SoundData
   clips:
   - {fileID: 8300000, guid: 7d0abce2f3591a14aac336a1e2fe6492, type: 3}
-  volume: 1
-  pitchRange: {x: 1.05, y: 1.15}
+  volume: 0.5
+  pitchRange: {x: 1.1, y: 1.1}
   muffleOutsideRoom: 1
   outsideRoomVolume: 0.35
