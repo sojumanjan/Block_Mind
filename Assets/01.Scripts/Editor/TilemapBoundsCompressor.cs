@@ -134,15 +134,22 @@ public static class TilemapBoundsCompressor
         return candidates;
     }
 
+    // 검증에는 GetTilesRangeCount를 쓰지 않는다.
+    // 그 값은 Tilemap이 직렬화해 들고 있는 참조 카운트에서 나오는데, 그 장부가 망가진 타일맵이 실제로 있다
+    // (m_TileSpriteArray 등의 m_RefCount가 음수. 'beforeDecrement >= 0' 어설션의 원인).
+    // 실측 예: Room(13,-4)는 실제 138칸인데 RangeCount는 234를 돌려준다.
+    // 검증이 틀린 기준과 비교하면 멀쩡한 압축을 되돌리고 경고를 띄운다. 후보 몇 개에만 도는 검증이라
+    // 칸을 직접 세는 비용은 감당할 수 있다.
     private static bool IsIntact(Tilemap tilemap, List<Vector3Int> positions, List<TileBase> tiles)
     {
         for (int i = 0; i < positions.Count; i++)
             if (tilemap.GetTile(positions[i]) != tiles[i]) return false;
 
-        BoundsInt bounds = tilemap.cellBounds;
-        if (bounds.size.x <= 0 || bounds.size.y <= 0) return positions.Count == 0;
+        int count = 0;
+        foreach (Vector3Int position in tilemap.cellBounds.allPositionsWithin)
+            if (tilemap.HasTile(position)) count++;
 
-        return tilemap.GetTilesRangeCount(bounds.min, bounds.max - new Vector3Int(1, 1, 0)) == positions.Count;
+        return count == positions.Count;
     }
 
     private static long CellCount(BoundsInt bounds)
