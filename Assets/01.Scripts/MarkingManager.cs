@@ -266,13 +266,16 @@ public class MarkingManager : SingletonBehaviour<MarkingManager>
 
         isMoving = false;
 
+        // 마킹 쉐도우 얻기 전에 리셋한다면 무시.
+        if (!AbilityManager.Instance.hasMarkingFirst) return;
+
         if (FollowingShadow.Instance != null)
             FollowingShadow.Instance.gameObject.SetActive(true);
     }
 
-    public void GetMarkingCount()
+    public void SetMarkingCount(int count)
     {
-        maxMarkingCount++;
+        maxMarkingCount = count;
     }
 
     [Header("기즈모 미리보기")]

@@ -8,19 +8,21 @@ public class AbilityManager : SingletonBehaviour<AbilityManager>
     [SerializeField] private FollowingShadow followingShadow;
     [SerializeField] private MarkingManager markingSystem;
 
-    public bool HasShadowAbility { get; private set; }
+    public bool hasMarkingFirst { get; private set; }
+    public bool hasMarkingSecond { get; private set; }
 
 
     private void Start()
     {
         // 게임 시작 시 능력 false로 설정.
-        SetMarkingFirst(true);
+        SetMarkingFirst(false);
+        MarkingManager.Instance.SetMarkingCount(1);
     }
 
     // 마킹 시스템 + 마킹 1개 능력 해금
     private void SetMarkingFirst(bool unlocked)
     {
-        HasShadowAbility = unlocked;
+        hasMarkingFirst = unlocked;
 
         // 그림자와 마킹시스템 On
         if (followingShadow != null)
@@ -32,12 +34,18 @@ public class AbilityManager : SingletonBehaviour<AbilityManager>
     }
 
     // 두번째 마킹 개수 해금
-    private void SetMarkingSecond()
+    private void SetMarkingSecond(bool unlocked)
     {
-        MarkingManager.Instance.GetMarkingCount();
+        // 그냥 마킹 카운트만 올리면 끝
+        if (unlocked)
+        {
+            MarkingManager.Instance.SetMarkingCount(2);
+            hasMarkingSecond = true;
+        }
+        else MarkingManager.Instance.SetMarkingCount(1);
     }
 
-    // 특정 방 진입, 아이템 습득 등 해금 트리거에서 호출
+    // 업글 템 획득시 호출
     public void UnlockMarkingFirst() => SetMarkingFirst(true);
-    public void UnlockMarkingSecond() => SetMarkingSecond();
+    public void UnlockMarkingSecond() => SetMarkingSecond(true);
 }
