@@ -12,6 +12,7 @@ using UnityEngine.UI;
 //   MinimapBaker      - 타일맵을 읽어 방별 텍스처로 굽고 아틀라스 한 장에 담는다
 //   MinimapPanZoom    - 휠 확대/축소, 드래그 이동, 클릭과 드래그 구분
 //   MinimapPortalIcons - 고속이동 차원문 아이콘 생성과 표시 상태
+//   MinimapKeyIcons   - 열쇠 아이콘 생성과 위치 갱신 (열쇠는 움직이므로 매 프레임 다시 계산한다)
 //
 // 이 클래스는 격자 배치와 좌표 변환, 열기/닫기, 고속이동 실행만 담당한다.
 // [SerializeField] 필드는 전부 여기 남아 있다 - 옮기면 직렬화 경로가 바뀌어 인스펙터 값이 날아간다.
@@ -81,6 +82,13 @@ public class MapUI : SingletonBehaviour<MapUI>
     [Tooltip("이 픽셀 이상 끌면 클릭이 아니라 드래그로 본다")]
     [SerializeField] private float dragThreshold = 6f;
 
+    [Header("열쇠")]
+    [Tooltip("열쇠 아이콘 프리팹. Image가 붙어 있어야 한다. 클릭 대상이 아니므로 Button은 필요 없다")]
+    [SerializeField] private RectTransform keyIconPrefab;
+    [SerializeField] private Vector2 keyIconSize = new Vector2(10f, 10f);
+    [Tooltip("열쇠 아이콘 색. 흰색이면 스프라이트 원본 색이 그대로 나온다")]
+    [SerializeField] private Color keyIconColor = Color.white;
+
     [Header("사운드")]
     [SerializeField] private SoundData mapOpenSound;
     [SerializeField] private SoundData mapCloseSound;
@@ -97,9 +105,13 @@ public class MapUI : SingletonBehaviour<MapUI>
 
     private readonly Dictionary<Room, Image> cells = new Dictionary<Room, Image>();
 
+    // 좌표로 방을 되찾기 위한 역인덱스. 들고 다니는 열쇠가 지금 어느 방에 있는지 알아내는 데 쓴다.
+    private readonly Dictionary<Vector2Int, Room> roomsByCoordinate = new Dictionary<Vector2Int, Room>();
+
     private InputActions inputActions;
     private MinimapPanZoom panZoom;
     private MinimapPortalIcons portalIcons;
+    private MinimapKeyIcons keyIcons;
 
     private Room currentRoom;
     private Vector2 gridCenter;
@@ -150,6 +162,7 @@ public class MapUI : SingletonBehaviour<MapUI>
         });
 
         portalIcons = new MinimapPortalIcons(portalIconPrefab, cellContainer, portalIconSize, portalIconColor);
+        keyIcons = new MinimapKeyIcons(keyIconPrefab, cellContainer, keyIconSize, keyIconColor);
 
         BuildCells();
 
@@ -163,6 +176,7 @@ public class MapUI : SingletonBehaviour<MapUI>
 
         panZoom.Tick();
         UpdatePlayerMarker();   // 지도를 열어둔 채로 플레이어가 움직일 수 있으므로 매 프레임 갱신
+        keyIcons.Refresh(RoomAt, WorldToCellLocal);   // 들고 있는 열쇠는 플레이어와 함께 움직인다
     }
 
     // ---------------------------------------------------------------- 셀 생성
@@ -210,10 +224,15 @@ public class MapUI : SingletonBehaviour<MapUI>
             cells[room] = image;
         }
 
+        roomsByCoordinate.Clear();
+        foreach (Room room in rooms)
+            roomsByCoordinate[CoordinateKeyOf(room)] = room;
+
         portalIcons.Build(rooms, WorldToCellLocal, OnPortalClicked);
+        keyIcons.Build(rooms);
 
         // 렌더 순서를 형제 순서로 정한다. 뒤에 있는 형제가 위에 그려진다.
-        //   셀 < 현재 방 테두리 < 차원문 아이콘 < 플레이어 마커
+        //   셀 < 현재 방 테두리 < 열쇠 아이콘 < 차원문 아이콘 < 플레이어 마커
         if (currentRoomHighlight != null)
         {
             currentRoomHighlight.sizeDelta = cellSize;
@@ -221,6 +240,7 @@ public class MapUI : SingletonBehaviour<MapUI>
             currentRoomHighlight.gameObject.SetActive(false);
         }
 
+        keyIcons.BringToFront();
         portalIcons.BringToFront();
 
         if (playerMarker != null)
@@ -248,6 +268,20 @@ public class MapUI : SingletonBehaviour<MapUI>
             item = itemColor,
             generic = genericObjectColor,
         };
+    }
+
+    // Room.Coordinate는 Vector2라 사전 키로 쓰기에 부적합하다(부동소수 비교).
+    // Room.WorldToCoordinate와 같은 정수 좌표로 맞춰야 역인덱스가 들어맞는다.
+    private static Vector2Int CoordinateKeyOf(Room room)
+    {
+        return new Vector2Int(Mathf.RoundToInt(room.Coordinate.x), Mathf.RoundToInt(room.Coordinate.y));
+    }
+
+    // 월드 좌표가 속한 방. 그 칸에 방이 없으면 null.
+    private Room RoomAt(Vector3 worldPosition)
+    {
+        Room room;
+        return roomsByCoordinate.TryGetValue(Room.WorldToCoordinate(worldPosition), out room) ? room : null;
     }
 
     // 격자 좌표 -> 컨테이너 로컬 좌표(px)
@@ -437,6 +471,7 @@ public class MapUI : SingletonBehaviour<MapUI>
         }
 
         portalIcons.Refresh(mode == MapMode.Travel, originPortal);
+        keyIcons.Refresh(RoomAt, WorldToCellLocal);
         UpdateCurrentRoomHighlight();
         UpdatePlayerMarker();
     }

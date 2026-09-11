@@ -27,6 +27,39 @@ public class Key : MonoBehaviour
     private float bobOffset;
     private Vector2 originPos;
     private Vector3 originScale;
+    private Collider2D keyCollider;
+    private SpriteRenderer keyRenderer;
+
+    // 미니맵에 보여야 하는 상태인지.
+    // 소모된 열쇠는 파괴되지 않고 스케일 0으로 월드에 남아 있지만 주울 수 없으므로 보이면 안 된다.
+    // 콜라이더는 주운 순간 꺼지고 원위치 복구에서만 다시 켜지므로, 들고 있는 중과 소모됨을
+    // 콜라이더만으로는 못 가른다. 그래서 followTarget을 함께 본다.
+    public bool IsOnMap => (keyCollider != null && keyCollider.enabled) || followTarget != null;
+
+    // 미니맵 아이콘을 놓을 기준점. Portal과 같은 규칙으로 스프라이트의 "발밑"을 쓴다.
+    // 기준을 통일해야 두 아이콘이 같은 피벗(가로 중앙 + 아래쪽 끝)으로 같은 자리에 앉는다.
+    public Vector3 MapFootPosition
+    {
+        get
+        {
+            if (keyRenderer == null) return transform.position;
+
+            Bounds bounds = keyRenderer.bounds;
+            return new Vector3(bounds.center.x, bounds.min.y, 0f);
+        }
+    }
+
+    // 미니맵 아이콘용 스프라이트. 인게임 스프라이트를 그대로 쓴다.
+    public Sprite MapIcon
+    {
+        get { return keyRenderer != null ? keyRenderer.sprite : null; }
+    }
+
+    private void Awake()
+    {
+        keyCollider = GetComponent<Collider2D>();
+        keyRenderer = GetComponentInChildren<SpriteRenderer>(true);
+    }
 
     private void Start()
     {
@@ -57,7 +90,7 @@ public class Key : MonoBehaviour
             holder.AddKey(this);
 
             followTarget = other.transform;
-            GetComponent<Collider2D>().enabled = false;
+            keyCollider.enabled = false;
 
             transform.DOPunchScale(Vector3.one * punchScale, punchDuration, 1, 0.5f)
                 .SetLink(gameObject);
@@ -126,6 +159,6 @@ public class Key : MonoBehaviour
     {
         transform.position = originPos;
         transform.localScale = originScale;
-        GetComponent<Collider2D>().enabled = true;
+        keyCollider.enabled = true;
     }
 }

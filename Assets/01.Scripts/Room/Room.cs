@@ -20,6 +20,7 @@ public class Room : MonoBehaviour
     public Door[] Doors { get; private set; }
     public ButtonZone[] ButtonZones { get; private set; }
     public Portal[] Portals { get; private set; }
+    public Key[] Keys { get; private set; }
     public Checkpoint Checkpoint { get; private set; }
     public CinemachineCamera Vcam { get; private set; }
     public Transform shadowSpawnPoint { get; private set; }
@@ -29,6 +30,7 @@ public class Room : MonoBehaviour
         Doors = GetComponentsInChildren<Door>(true);
         ButtonZones = GetComponentsInChildren<ButtonZone>(true);
         Portals = GetComponentsInChildren<Portal>(true);
+        Keys = GetComponentsInChildren<Key>(true);
         Checkpoint = GetComponentInChildren<Checkpoint>(true);
         Vcam = GetComponentInChildren<CinemachineCamera>(true);
         shadowSpawnPoint = GetComponentInChildren<ShadowSpawnPoint>().transform;
