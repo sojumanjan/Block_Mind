@@ -41,7 +41,6 @@ public class PlayerKeyHolder : SingletonBehaviour<PlayerKeyHolder>
     public void ResetKey()
     {
         if (heldKey != null) {
-            heldKey.ResetLocation();
             heldKey = null;
         }
     }

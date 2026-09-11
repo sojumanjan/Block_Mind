@@ -36,6 +36,13 @@ public class Key : MonoBehaviour
             .SetLink(gameObject);
         originPos = transform.position;
         originScale = transform.localScale;
+        CheckpointManager.Instance.CheckPointActivate += ResetLocation;
+    }
+
+    private void OnDestroy()
+    {
+        if (CheckpointManager.Instance != null)
+            CheckpointManager.Instance.CheckPointActivate -= ResetLocation;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -90,8 +97,7 @@ public class Key : MonoBehaviour
 
         transform.DOScale(Vector3.zero, consumeDuration)
             .SetEase(consumeEase)
-            .SetLink(gameObject)
-            .OnComplete(() => Destroy(gameObject));
+            .SetLink(gameObject);
     }
 
     // 체크포인트를 밟았을 때 PlayerKeyHolder가 호출.
@@ -99,11 +105,17 @@ public class Key : MonoBehaviour
     // 원래 자리에 되돌려 놓는다. Consume과 달리 파괴하지 않으므로 스케일 복구가 필요하다.
     public void ResetLocation()
     {
+        // 플레이어를 따라다니지 않으며 소모되거나 원래위치의 얘들은 바로 스케일과 포지션을 원위치.
+        if (followTarget == null)
+        {
+            RestoreToOrigin();
+            return;
+        }
+
         followTarget = null;
 
         // 획득 펀치가 아직 돌고 있으면 스케일 트윈이 서로 덮어써서 크기가 튄다
         transform.DOKill();
-
         transform.DOScale(Vector3.zero, consumeDuration)
             .SetEase(consumeEase)
             .SetLink(gameObject)
